@@ -59,14 +59,14 @@ async function getWallets() {
 async function queryMoralis(inputWallets) {
     let cleanTransactionArr = [];
 
-    for (let address of inputWallets) {
+    for (let wallet of inputWallets) {
         let page = 0;
         let dateReached = false;
 
 
         while (dateReached === false) {
             const transactions = await Moralis.Web3API.account.getNFTTransfers({
-                address: address,
+                address: wallet,
                 offset: page * 500,
                 limit: 500,
                 // order: 'block_timestamp.DESC'
@@ -95,9 +95,15 @@ async function queryMoralis(inputWallets) {
 
             if (transactions.result.length !== 0) {
                 cleanTransactionArr.push(transactions.result[0]);
+                cleanTransactionArr[0].wallet = wallet;
+                cleanTransactionArr[0].quantity = 1;
                 for (let i = 1; i < transactions.result.length; i++) {
                     if (transactions.result[i].transaction_hash !== transactions.result[i - 1].transaction_hash) {
                         cleanTransactionArr.push(transactions.result[i]);
+                        cleanTransactionArr[cleanTransactionArr.length - 1]['wallet'] = wallet;
+                        cleanTransactionArr[cleanTransactionArr.length - 1]['quantity'] = 1;
+                    } else {
+                        cleanTransactionArr[cleanTransactionArr.length - 1].quantity++;
                     }
                 }
                 // cleanTransactionArr = cleanTransactionArr.concat(transactions.result);
@@ -114,12 +120,9 @@ async function queryMoralis(inputWallets) {
     return cleanTransactionArr;
 }
 
-async function processTransactions(transactions, inputWallets) {
+async function processTransactions(transactions) {
     let processedTransactions = [];
     const ethValueMap = new Map();
-    const walletSet = new Set();
-
-    for (let w of inputWallets) walletSet.add(w); // populate walletSet from inputWallets array (faster searching)
 
     for (let t of transactions) {
         // value of ether at transaction date
@@ -139,23 +142,19 @@ async function processTransactions(transactions, inputWallets) {
         let actionType;
         if (t.from_address === '0x0000000000000000000000000000000000000000') {
             actionType = 'mint';
-        } else if (walletSet.has(t.to_address)) {
+        } else if (t.wallet.toLowerCase() === t.to_address.toLowerCase()) {
             actionType = 'buy';
-        } else if (walletSet.has(t.from_address)) {
+        } else if (t.wallet.toLowerCase() === t.from_address.toLowerCase()) {
             actionType = 'sell';
         } else {
             throw new Error('check action type calculations');
         }
 
-        if (walletSet.has(t.from_address) && walletSet.has(t.to_address)) {
-            throw new Error('to and from fields both contain input wallets')
-        }
-
-        // ethvalue and fiat value
+        // ethValue and fiatValue
         const ethValue = parseFloat(web3.utils.fromWei(t.value));
         const fiatValue = currency(ethPriceUSD).multiply(ethValue).value;
 
-        // ethfee and fiat fee
+        // ethFee and fiatFee
         const txData = await Moralis.Web3API.native.getTransaction({transaction_hash: t.transaction_hash});
         const gasPriceEth = parseFloat(web3.utils.fromWei(txData.gas_price));
         const ethFee = gasPriceEth * txData.receipt_gas_used;
@@ -165,10 +164,9 @@ async function processTransactions(transactions, inputWallets) {
         const nftMeta = await Moralis.Web3API.token.getNFTMetadata({address: t.token_address});
         const nftName = nftMeta.name;
 
-
         let tempObj = {
-            txnHash: t.transaction_hash,
             date: new Date(t.block_timestamp),
+            txnHash: t.transaction_hash,
             to: t.to_address,
             from: t.from_address,
             actionType: actionType,
@@ -176,7 +174,10 @@ async function processTransactions(transactions, inputWallets) {
             ethFee: ethFee,
             fiatValue: fiatValue,
             fiatFee: fiatFee,
-            nftName: nftName
+            nftName: nftName,
+            tokenID: t.token_id,
+            walletAddress: t.wallet,
+            quantity: t.quantity
         }
 
         processedTransactions.push(tempObj);
