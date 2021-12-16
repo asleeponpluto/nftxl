@@ -1,5 +1,6 @@
 require('dotenv').config();
 const Moralis = require('moralis/node');
+const currency = require('currency.js');
 
 const init = require('./init');
 const util = require('./util');
@@ -9,9 +10,9 @@ async function main() {
 
     let inputWallets = await util.getWallets();
     let cleanTransactionArr = await util.queryMoralis(inputWallets);
-    let processedTransactions = await util.processTransactions(cleanTransactionArr);
+    let processedTransactions = await util.processTransactions(cleanTransactionArr, inputWallets);
 
-    console.log(cleanTransactionArr);
+    console.log(processedTransactions);
 }
 
 main().catch((e) => {

@@ -1,6 +1,10 @@
 const readline = require('readline');
 const fs = require('fs');
-const Moralis = require("moralis/node");
+const Moralis = require('moralis/node');
+const fetch = require('node-fetch');
+const currency = require('currency.js');
+const Web3 = require('web3');
+const web3 = new Web3();
 
 function timeout(ms) {
     return new Promise((res) => setTimeout(res, ms));
@@ -29,7 +33,7 @@ async function getWalletsPrompt() {
         lastInputted = await promptAsync('Enter a wallet (blank to continue): ');
 
         if (lastInputted.trim().length === 0) break;
-        else walletArr.push(lastInputted);
+        else walletArr.push(lastInputted.toLowerCase());
     }
 
     return walletArr;
@@ -38,7 +42,7 @@ async function getWalletsPrompt() {
 // returns an array with all read addresses
 async function getWalletsFile(filePath) {
     const data = fs.readFileSync(filePath, {encoding: 'utf8'});
-    const dirtyLines = data.split(/[\r\n]+/);
+    const dirtyLines = data.toLowerCase().split(/[\r\n]+/);
     const cleaned = dirtyLines.filter((line) => line.trim().length !== 0);
 
     return cleaned;
@@ -65,7 +69,7 @@ async function queryMoralis(inputWallets) {
                 address: address,
                 offset: page * 500,
                 limit: 500,
-                order: 'block_timestamp.DESC'
+                // order: 'block_timestamp.DESC'
             });
 
             if (transactions.result.length === 0)
@@ -89,10 +93,17 @@ async function queryMoralis(inputWallets) {
                 transactions.result.splice(dirtyIndex);
             }
 
-            if (transactions.result.length !== 0)
-                cleanTransactionArr = cleanTransactionArr.concat(transactions.result);
-            else
+            if (transactions.result.length !== 0) {
+                cleanTransactionArr.push(transactions.result[0]);
+                for (let i = 1; i < transactions.result.length; i++) {
+                    if (transactions.result[i].transaction_hash !== transactions.result[i - 1].transaction_hash) {
+                        cleanTransactionArr.push(transactions.result[i]);
+                    }
+                }
+                // cleanTransactionArr = cleanTransactionArr.concat(transactions.result);
+            } else {
                 dateReached = true;
+            }
 
             page++;
             console.log('500 items queried...');
@@ -103,17 +114,73 @@ async function queryMoralis(inputWallets) {
     return cleanTransactionArr;
 }
 
-async function processTransactions(transactions) {
+async function processTransactions(transactions, inputWallets) {
     let processedTransactions = [];
+    const ethValueMap = new Map();
+    const walletSet = new Set();
+
+    for (let w of inputWallets) walletSet.add(w); // populate walletSet from inputWallets array (faster searching)
 
     for (let t of transactions) {
+        // value of ether at transaction date
+        let transactionDate = new Date(t.block_timestamp);
+        let formattedDate = transactionDate.toISOString().split('T')[0];
+        if (!ethValueMap.has(formattedDate)) {
+            const result = await fetch(`https://api.coinbase.com/v2/prices/eth-usd/spot?date=${formattedDate}`);
+            const resultJSON = await result.json();
+            ethValueMap.set(formattedDate, resultJSON.data.amount);
+            console.log('request to coinbase');
+        } else {
+            console.log('in map')
+        }
+        const ethPriceUSD = ethValueMap.get(formattedDate);
+
+        // action type
+        let actionType;
+        if (t.from_address === '0x0000000000000000000000000000000000000000') {
+            actionType = 'mint';
+        } else if (walletSet.has(t.to_address)) {
+            actionType = 'buy';
+        } else if (walletSet.has(t.from_address)) {
+            actionType = 'sell';
+        } else {
+            throw new Error('check action type calculations');
+        }
+
+        if (walletSet.has(t.from_address) && walletSet.has(t.to_address)) {
+            throw new Error('to and from fields both contain input wallets')
+        }
+
+        // ethvalue and fiat value
+        const ethValue = parseFloat(web3.utils.fromWei(t.value));
+        const fiatValue = currency(ethPriceUSD).multiply(ethValue).value;
+
+        // ethfee and fiat fee
+        const txData = await Moralis.Web3API.native.getTransaction({transaction_hash: t.transaction_hash});
+        const gasPriceEth = parseFloat(web3.utils.fromWei(txData.gas_price));
+        const ethFee = gasPriceEth * txData.receipt_gas_used;
+        const fiatFee = currency(ethPriceUSD).multiply(ethFee).value;
+
+        // transaction data
+        const nftMeta = await Moralis.Web3API.token.getNFTMetadata({address: t.token_address});
+        const nftName = nftMeta.name;
+
+
         let tempObj = {
+            txnHash: t.transaction_hash,
             date: new Date(t.block_timestamp),
             to: t.to_address,
             from: t.from_address,
+            actionType: actionType,
+            ethValue: ethValue,
+            ethFee: ethFee,
+            fiatValue: fiatValue,
+            fiatFee: fiatFee,
+            nftName: nftName
         }
 
         processedTransactions.push(tempObj);
+        await timeout(100);
     }
 
     return processedTransactions;
