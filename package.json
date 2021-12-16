@@ -13,6 +13,7 @@
   "dependencies": {
     "currency.js": "^2.0.4",
     "dotenv": "^10.0.0",
+    "exceljs": "^4.3.0",
     "moralis": "0.0.165",
     "node-fetch": "^2.6.6",
     "web3": "^1.6.1"

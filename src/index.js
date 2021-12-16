@@ -1,9 +1,8 @@
 require('dotenv').config();
-const Moralis = require('moralis/node');
-const currency = require('currency.js');
 
 const init = require('./init');
 const util = require('./util');
+const excel = require('./excel');
 
 async function main() {
     await init();
@@ -13,6 +12,7 @@ async function main() {
     let processedTransactions = await util.processTransactions(cleanTransactionArr);
 
     console.log(processedTransactions);
+    await excel.createNFTWorksheet(processedTransactions);
 }
 
 main().catch((e) => {

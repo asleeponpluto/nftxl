@@ -95,13 +95,13 @@ async function queryMoralis(inputWallets) {
 
             if (transactions.result.length !== 0) {
                 cleanTransactionArr.push(transactions.result[0]);
-                cleanTransactionArr[0].wallet = wallet;
-                cleanTransactionArr[0].quantity = 1;
+                cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
+                cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
                 for (let i = 1; i < transactions.result.length; i++) {
                     if (transactions.result[i].transaction_hash !== transactions.result[i - 1].transaction_hash) {
                         cleanTransactionArr.push(transactions.result[i]);
-                        cleanTransactionArr[cleanTransactionArr.length - 1]['wallet'] = wallet;
-                        cleanTransactionArr[cleanTransactionArr.length - 1]['quantity'] = 1;
+                        cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
+                        cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
                     } else {
                         cleanTransactionArr[cleanTransactionArr.length - 1].quantity++;
                     }
@@ -181,10 +181,28 @@ async function processTransactions(transactions) {
         }
 
         processedTransactions.push(tempObj);
-        await timeout(100);
+        await timeout(140);
     }
 
     return processedTransactions;
+}
+
+function seperateIntoMonths(processedTransactions) {
+    const txnMonths = new Array(12);
+
+    // initialize with 12 empty arrays for each month
+    for (let i = 0; i < 12; i++) {
+        txnMonths[i] = [];
+    }
+
+    if (processedTransactions.length === 0)
+        return txnMonths;
+
+    for (let t of processedTransactions) {
+        txnMonths[t.date.getMonth()].push(t);
+    }
+
+    return txnMonths;
 }
 
 exports.timeout = timeout;
@@ -193,3 +211,4 @@ exports.getWalletsFile = getWalletsFile;
 exports.getWallets = getWallets;
 exports.queryMoralis = queryMoralis;
 exports.processTransactions = processTransactions;
+exports.seperateIntoMonths = seperateIntoMonths;
