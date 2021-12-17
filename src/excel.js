@@ -24,7 +24,7 @@ async function createNFTWorksheet(processedTransactions) {
     // }
 
 
-    const txnMonths = util.seperateIntoMonths(processedTransactions);
+    const txnMonths = util.separateIntoMonths(processedTransactions);
 
     for (let i = 0; i < 12; i++) {
         const worksheet = workbook.addWorksheet(months[i]);
@@ -32,15 +32,15 @@ async function createNFTWorksheet(processedTransactions) {
         worksheet.columns = [
             { header: 'Date', key: 'date' },
             { header: 'TxnHash', key: 'txnHash' },
-            { header: 'To', key: 'to' },
             { header: 'From', key: 'from' },
+            { header: 'To', key: 'to' },
             { header: 'ActionType', key: 'actionType' },
             { header: 'EthValue', key: 'ethValue' },
             { header: 'EthFee', key: 'ethFee' },
-            { header: 'ethMarketplaceFee', key: 'ethMarketplaceFee' },
+            { header: 'EthMarketplaceFee', key: 'ethMarketplaceFee' },
             { header: 'FiatValue', key: 'fiatValue' },
             { header: 'FiatFee', key: 'fiatFee' },
-            { header: 'fiatMarketplaceFee', key: 'fiatMarketplaceFee' },
+            { header: 'FiatMarketplaceFee', key: 'fiatMarketplaceFee' },
             { header: 'NftName', key: 'nftName' },
             { header: 'TokenID', key: 'tokenID' },
             { header: 'WalletAddress', key: 'walletAddress' },
@@ -51,7 +51,90 @@ async function createNFTWorksheet(processedTransactions) {
             worksheet.addRow(t);
         }
 
-        worksheet.getColumn('date').width = 15;
+        worksheet.getColumn('date').width = 12;
+        worksheet.getColumn('txnHash').width = 12;
+        worksheet.getColumn('from').width = 12;
+        worksheet.getColumn('to').width = 12;
+        worksheet.getColumn('actionType').width = 12;
+        worksheet.getColumn('ethValue').width = 12;
+        worksheet.getColumn('ethFee').width = 12;
+        worksheet.getColumn('ethMarketplaceFee').width = 20;
+        worksheet.getColumn('fiatValue').width = 12;
+        worksheet.getColumn('fiatFee').width = 12;
+        worksheet.getColumn('fiatMarketplaceFee').width = 20;
+        worksheet.getColumn('nftName').width = 12;
+        worksheet.getColumn('tokenID').width = 12;
+        worksheet.getColumn('walletAddress').width = 15;
+        worksheet.getColumn('quantity').width = 12;
+
+        worksheet.addConditionalFormatting({
+            ref: `A2:O${worksheet.rowCount}`,
+            rules: [
+                {
+                    type: 'expression',
+                    formulae: ['=$E2="buy"'],
+                    style: {
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FFCCCCFF'}},
+                        border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
+                    }
+                },
+                {
+                    type: 'expression',
+                    formulae: ['=$E2="sell"'],
+                    style: {
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FF99CC0'}},
+                        border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
+                    }
+                },
+                {
+                    type: 'expression',
+                    formulae: ['=$E2="mint"'],
+                    style: {
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FFDAEEF3'}},
+                        border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
+                    }
+                },
+                {
+                    type: 'expression',
+                    formulae: ['=$E2="transfer (in)"'],
+                    style: {
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FFCCFFCC'}},
+                        border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
+                    }
+                },
+                {
+                    type: 'expression',
+                    formulae: ['=$E2="transfer (out)"'],
+                    style: {
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FFFFFF99'}},
+                        border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
+                    }
+                },
+                {
+                    type: 'expression',
+                    formulae: ['=$E2="burn"'],
+                    style: {
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FFFF8080'}},
+                        border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
+                    }
+                },
+            ]
+        });
+
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: {argb: 'FFBABABA'}
+            };
+
+            // cell.border = {
+            //     top: {style:'thin'},
+            //     left: {style:'thin'},
+            //     bottom: {style:'thin'},
+            //     right: {style:'thin'}
+            // };
+        });
     }
 
     const totalsWorksheet = workbook.addWorksheet('NFT Totals');
@@ -62,6 +145,8 @@ async function createNFTWorksheet(processedTransactions) {
         { header: 'Total USD Gained', key: 'totalUSDGained' },
         { header: 'Total Fees Eth', key: 'totalFeesEth' },
         { header: 'Total Fees USD', key: 'totalFeesUSD' },
+        { header: 'Total Marketplace Fees Eth', key: 'totalMarketplaceFeesEth' },
+        { header: 'Total Marketplace Fees USD', key: 'totalMarketplaceFeesUSD' },
         { header: 'Total Profit Eth', key: 'totalProfitEth' },
         { header: 'Total Profit USD', key: 'totalProfitUSD' }
     ]
@@ -73,6 +158,8 @@ async function createNFTWorksheet(processedTransactions) {
         totalUSDGained: 0,
         totalFeesEth: 0, // mint buy
         totalFeesUSD: 0,
+        totalMarketplaceFeesEth: 0,
+        totalMarketplaceFeesUSD: 0,
         totalProfitEth: 0,
         totalProfitUSD: 0
     };
@@ -87,6 +174,9 @@ async function createNFTWorksheet(processedTransactions) {
             nftTotals.totalEthGained += t.ethValue;
             nftTotals.totalUSDGained = currency(nftTotals.totalUSDGained).add(t.fiatValue).value;
         }
+
+        nftTotals.totalMarketplaceFeesEth += t.ethMarketplaceFee;
+        nftTotals.totalMarketplaceFeesUSD += t.fiatMarketplaceFee;
     }
 
     nftTotals.totalProfitEth = nftTotals.totalEthGained - nftTotals.totalEthSpent - nftTotals.totalFeesEth;

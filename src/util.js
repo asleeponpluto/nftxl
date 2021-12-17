@@ -158,6 +158,7 @@ async function processTransactions(transactions) {
         let fiatMarketplaceFee = 0;
 
         if (actionType === 'sell') {
+            console.log(`seller percentage: ${t.token_address}`);
             const sellerPercentage = await getSellerPercentage(t.token_address);
             const decimalPercentage = sellerPercentage / 10000;
             const multiplyFactor = 1 - decimalPercentage;
@@ -168,20 +169,35 @@ async function processTransactions(transactions) {
         }
 
         // ethFee and fiatFee
+        console.log(`getTransaction: ${t.transaction_hash}`);
         const txData = await Moralis.Web3API.native.getTransaction({transaction_hash: t.transaction_hash});
         const gasPriceEth = parseFloat(web3.utils.fromWei(txData.gas_price));
         const ethFee = gasPriceEth * txData.receipt_gas_used;
         const fiatFee = currency(ethPriceUSD).multiply(ethFee).value;
 
         // transaction data
+        console.log(`getNFTMetadata: ${t.token_address}`);
         const nftMeta = await Moralis.Web3API.token.getNFTMetadata({address: t.token_address});
         const nftName = nftMeta.name;
+
+        // transfer (in), transfer (out), burn
+        if (actionType === 'buy') {
+            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === 0)
+                actionType = 'transfer (in)';
+        } else if (actionType === 'sell') {
+            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === 0) {
+                if (txData.to_address === '0x0000000000000000000000000000000000000000')
+                    actionType = 'burn';
+                else
+                    actionType = 'transfer (out)';
+            }
+        }
 
         let tempObj = {
             date: new Date(t.block_timestamp),
             txnHash: t.transaction_hash,
-            to: t.to_address,
             from: t.from_address,
+            to: t.to_address,
             actionType: actionType,
             ethValue: ethValue,
             ethFee: ethFee,
@@ -196,7 +212,7 @@ async function processTransactions(transactions) {
         }
 
         processedTransactions.push(tempObj);
-        await timeout(140);
+        await timeout(160);
     }
 
     return processedTransactions;
@@ -225,7 +241,7 @@ async function getSellerPercentage(tokenAddress) {
     return responseJSON.seller_fee_basis_points;
 }
 
-function seperateIntoMonths(processedTransactions) {
+function separateIntoMonths(processedTransactions) {
     const txnMonths = new Array(12);
 
     // initialize with 12 empty arrays for each month
@@ -250,4 +266,4 @@ exports.getWallets = getWallets;
 exports.queryMoralis = queryMoralis;
 exports.processTransactions = processTransactions;
 exports.getSellerPercentage = getSellerPercentage;
-exports.seperateIntoMonths = seperateIntoMonths;
+exports.separateIntoMonths = separateIntoMonths;

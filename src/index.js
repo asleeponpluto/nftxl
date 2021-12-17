@@ -9,6 +9,7 @@ async function main() {
 
     let inputWallets = await util.getWallets();
     let cleanTransactionArr = await util.queryMoralis(inputWallets);
+    console.log(cleanTransactionArr.length);
     let processedTransactions = await util.processTransactions(cleanTransactionArr);
 
     console.log(processedTransactions);
