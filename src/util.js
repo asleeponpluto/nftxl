@@ -4,6 +4,7 @@ const Moralis = require('moralis/node');
 const fetch = require('node-fetch');
 const HttpsProxyAgent = require('https-proxy-agent');
 const currency = require('currency.js');
+const chalk = require('chalk');
 const Web3 = require('web3');
 const web3 = new Web3();
 
@@ -123,7 +124,7 @@ async function queryMoralis(inputWallets) {
             }
 
             page++;
-            console.log('500 items queried...');
+            console.log(`${transactions.result.length} items queried...`);
             await timeout(2000);
         }
     }
@@ -134,10 +135,11 @@ async function queryMoralis(inputWallets) {
 async function processTransactions(transactions) {
     let processedTransactions = [];
     const ethValueMap = new Map();
+    const marketFeeMap = new Map();
     let count = 1;
 
     for (let t of transactions) {
-        process.stdout.write(`Transaction ${count++} of ${transactions.length}... `);
+        process.stdout.write(chalk.red(`Transaction ${count++} of ${transactions.length}... `));
 
         // value of ether at transaction date
         let transactionDate = new Date(t.block_timestamp);
@@ -146,9 +148,9 @@ async function processTransactions(transactions) {
             const result = await fetch(`https://api.coinbase.com/v2/prices/eth-usd/spot?date=${formattedDate}`);
             const resultJSON = await result.json();
             ethValueMap.set(formattedDate, resultJSON.data.amount);
-            console.log('request to coinbase');
+            console.log(chalk.cyan('coinbase req'));
         } else {
-            console.log('in map')
+            console.log(chalk.cyan('ethValue cached'));
         }
         const ethPriceUSD = ethValueMap.get(formattedDate);
 
@@ -201,10 +203,16 @@ async function processTransactions(transactions) {
 
         // marketplace fee (must come after transfer (in), transfer (out), burn calculations)
         if (actionType === 'sell') {
-            console.log(`seller percentage: ${t.token_address}`);
-            const sellerPercentage = await retryIfError(async () => {
-                return await getSellerPercentage(t.token_address);
-            });
+            console.log(`getSellerPercentage: ${t.token_address}`);
+            let sellerPercentage;
+            if (marketFeeMap.has(t.token_address)) {
+                sellerPercentage = marketFeeMap.get(t.token_address);
+            } else {
+                sellerPercentage = await retryIfError(async () => {
+                    return await getSellerPercentage(t.token_address);
+                });
+                marketFeeMap.set(t.token_address, sellerPercentage);
+            }
             const decimalPercentage = sellerPercentage / 10000;
             const multiplyFactor = 1 - decimalPercentage;
             ethMarketplaceFee = ethValue * decimalPercentage;
@@ -212,7 +220,6 @@ async function processTransactions(transactions) {
             ethValue = ethValue * multiplyFactor;
             fiatValue = currency(fiatValue).multiply(multiplyFactor).value;
         }
-
 
         let tempObj = {
             date: new Date(t.block_timestamp),
@@ -232,6 +239,7 @@ async function processTransactions(transactions) {
             quantity: t.quantity
         }
 
+        console.log();
         processedTransactions.push(tempObj);
         await timeout(160);
     }
