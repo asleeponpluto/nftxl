@@ -1,4 +1,5 @@
 require('dotenv').config();
+const Moralis = require('moralis/node');
 
 const init = require('./init');
 const util = require('./util');

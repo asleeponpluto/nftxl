@@ -55,16 +55,16 @@ async function createNFTWorksheet(processedTransactions) {
         worksheet.getColumn('txnHash').width = 12;
         worksheet.getColumn('from').width = 12;
         worksheet.getColumn('to').width = 12;
-        worksheet.getColumn('actionType').width = 12;
+        worksheet.getColumn('actionType').width = 14;
         worksheet.getColumn('ethValue').width = 12;
         worksheet.getColumn('ethFee').width = 12;
         worksheet.getColumn('ethMarketplaceFee').width = 20;
         worksheet.getColumn('fiatValue').width = 12;
         worksheet.getColumn('fiatFee').width = 12;
         worksheet.getColumn('fiatMarketplaceFee').width = 20;
-        worksheet.getColumn('nftName').width = 12;
+        worksheet.getColumn('nftName').width = 20;
         worksheet.getColumn('tokenID').width = 12;
-        worksheet.getColumn('walletAddress').width = 15;
+        worksheet.getColumn('walletAddress').width = 16;
         worksheet.getColumn('quantity').width = 12;
 
         worksheet.addConditionalFormatting({
@@ -82,7 +82,7 @@ async function createNFTWorksheet(processedTransactions) {
                     type: 'expression',
                     formulae: ['=$E2="sell"'],
                     style: {
-                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FF99CC0'}},
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FF99CC00'}},
                         border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
                     }
                 },
@@ -90,7 +90,7 @@ async function createNFTWorksheet(processedTransactions) {
                     type: 'expression',
                     formulae: ['=$E2="mint"'],
                     style: {
-                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FFDAEEF3'}},
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FFCC99FF'}},
                         border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
                     }
                 },
@@ -182,6 +182,25 @@ async function createNFTWorksheet(processedTransactions) {
     nftTotals.totalProfitEth = nftTotals.totalEthGained - nftTotals.totalEthSpent - nftTotals.totalFeesEth;
     nftTotals.totalProfitUSD = nftTotals.totalUSDGained - nftTotals.totalUSDSpent - nftTotals.totalFeesUSD;
     totalsWorksheet.addRow(nftTotals);
+
+    totalsWorksheet.getColumn('totalEthSpent').width = 18;
+    totalsWorksheet.getColumn('totalUSDSpent').width = 18;
+    totalsWorksheet.getColumn('totalEthGained').width = 18;
+    totalsWorksheet.getColumn('totalUSDGained').width = 18;
+    totalsWorksheet.getColumn('totalFeesEth').width = 18;
+    totalsWorksheet.getColumn('totalFeesUSD').width = 18;
+    totalsWorksheet.getColumn('totalMarketplaceFeesEth').width = 26;
+    totalsWorksheet.getColumn('totalMarketplaceFeesUSD').width = 26;
+    totalsWorksheet.getColumn('totalProfitEth').width = 18;
+    totalsWorksheet.getColumn('totalProfitUSD').width = 18;
+
+    totalsWorksheet.getRow(1).eachCell((cell) => {
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: {argb: 'FFBABABA'}
+        };
+    });
 
     await workbook.xlsx.writeFile('something.xlsx');
 }

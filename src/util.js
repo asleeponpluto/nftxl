@@ -11,6 +11,17 @@ function timeout(ms) {
     return new Promise((res) => setTimeout(res, ms));
 }
 
+async function retryIfError(someFunc) {
+    while (true) {
+        try {
+            return await someFunc();
+        } catch(e) {
+            console.log('a function failed, waiting 10 seconds and trying again...')
+            await timeout(10000);
+        }
+    }
+}
+
 function promptAsync(message) {
     const rl = readline.createInterface({
         input: process.stdin,
@@ -95,11 +106,11 @@ async function queryMoralis(inputWallets) {
             }
 
             if (transactions.result.length !== 0) {
-                cleanTransactionArr.push(transactions.result[0]);
-                cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
-                cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
-                for (let i = 1; i < transactions.result.length; i++) {
-                    if (transactions.result[i].transaction_hash !== transactions.result[i - 1].transaction_hash) {
+                for (let i = 0; i < transactions.result.length; i++) {
+                    // TODO better duplicate checking (implement a set of all txHashes for fast searching)
+                    if (cleanTransactionArr.length === 0 ||
+                        transactions.result[i].transaction_hash !== cleanTransactionArr[cleanTransactionArr.length - 1].transaction_hash
+                       ) {
                         cleanTransactionArr.push(transactions.result[i]);
                         cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
                         cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
@@ -107,7 +118,6 @@ async function queryMoralis(inputWallets) {
                         cleanTransactionArr[cleanTransactionArr.length - 1].quantity++;
                     }
                 }
-                // cleanTransactionArr = cleanTransactionArr.concat(transactions.result);
             } else {
                 dateReached = true;
             }
@@ -124,8 +134,11 @@ async function queryMoralis(inputWallets) {
 async function processTransactions(transactions) {
     let processedTransactions = [];
     const ethValueMap = new Map();
+    let count = 1;
 
     for (let t of transactions) {
+        process.stdout.write(`Transaction ${count++} of ${transactions.length}... `);
+
         // value of ether at transaction date
         let transactionDate = new Date(t.block_timestamp);
         let formattedDate = transactionDate.toISOString().split('T')[0];
@@ -157,9 +170,41 @@ async function processTransactions(transactions) {
         let ethMarketplaceFee = 0;
         let fiatMarketplaceFee = 0;
 
+        // ethFee and fiatFee
+        console.log(`getTransaction: ${t.transaction_hash}`);
+        const txData = await retryIfError(async () => {
+            return await Moralis.Web3API.native.getTransaction({transaction_hash: t.transaction_hash});
+        });
+        const gasPriceEth = parseFloat(web3.utils.fromWei(txData.gas_price));
+        const ethFee = gasPriceEth * txData.receipt_gas_used;
+        const fiatFee = currency(ethPriceUSD).multiply(ethFee).value;
+
+        // transaction data
+        console.log(`getNFTMetadata: ${t.token_address}`);
+        const nftMeta = await retryIfError(async () => {
+            return await Moralis.Web3API.token.getNFTMetadata({address: t.token_address});
+        });
+        const nftName = nftMeta.name;
+
+        // transfer (in), transfer (out), burn
+        if (actionType === 'buy') {
+            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === '0')
+                actionType = 'transfer (in)';
+        } else if (actionType === 'sell') {
+            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === '0') {
+                if (txData.to_address === '0x0000000000000000000000000000000000000000')
+                    actionType = 'burn';
+                else
+                    actionType = 'transfer (out)';
+            }
+        }
+
+        // marketplace fee (must come after transfer (in), transfer (out), burn calculations)
         if (actionType === 'sell') {
             console.log(`seller percentage: ${t.token_address}`);
-            const sellerPercentage = await getSellerPercentage(t.token_address);
+            const sellerPercentage = await retryIfError(async () => {
+                return await getSellerPercentage(t.token_address);
+            });
             const decimalPercentage = sellerPercentage / 10000;
             const multiplyFactor = 1 - decimalPercentage;
             ethMarketplaceFee = ethValue * decimalPercentage;
@@ -168,30 +213,6 @@ async function processTransactions(transactions) {
             fiatValue = currency(fiatValue).multiply(multiplyFactor).value;
         }
 
-        // ethFee and fiatFee
-        console.log(`getTransaction: ${t.transaction_hash}`);
-        const txData = await Moralis.Web3API.native.getTransaction({transaction_hash: t.transaction_hash});
-        const gasPriceEth = parseFloat(web3.utils.fromWei(txData.gas_price));
-        const ethFee = gasPriceEth * txData.receipt_gas_used;
-        const fiatFee = currency(ethPriceUSD).multiply(ethFee).value;
-
-        // transaction data
-        console.log(`getNFTMetadata: ${t.token_address}`);
-        const nftMeta = await Moralis.Web3API.token.getNFTMetadata({address: t.token_address});
-        const nftName = nftMeta.name;
-
-        // transfer (in), transfer (out), burn
-        if (actionType === 'buy') {
-            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === 0)
-                actionType = 'transfer (in)';
-        } else if (actionType === 'sell') {
-            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === 0) {
-                if (txData.to_address === '0x0000000000000000000000000000000000000000')
-                    actionType = 'burn';
-                else
-                    actionType = 'transfer (out)';
-            }
-        }
 
         let tempObj = {
             date: new Date(t.block_timestamp),
@@ -238,6 +259,11 @@ async function getSellerPercentage(tokenAddress) {
     const response = await fetch(`https://api.opensea.io/api/v1/asset_contract/${tokenAddress}`, { agent: proxyAgent });
     const responseJSON = await response.json();
 
+    if (!responseJSON || !responseJSON.seller_fee_basis_points) {
+        console.error(responseJSON);
+        throw new Error('getSellerPercentage Failed...');
+    }
+
     return responseJSON.seller_fee_basis_points;
 }
 
@@ -260,6 +286,7 @@ function separateIntoMonths(processedTransactions) {
 }
 
 exports.timeout = timeout;
+exports.retryIfError = retryIfError;
 exports.getWalletsPrompt = getWalletsPrompt;
 exports.getWalletsFile = getWalletsFile;
 exports.getWallets = getWallets;
