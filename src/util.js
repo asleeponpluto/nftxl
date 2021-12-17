@@ -2,6 +2,7 @@ const readline = require('readline');
 const fs = require('fs');
 const Moralis = require('moralis/node');
 const fetch = require('node-fetch');
+const HttpsProxyAgent = require('https-proxy-agent');
 const currency = require('currency.js');
 const Web3 = require('web3');
 const web3 = new Web3();
@@ -151,8 +152,20 @@ async function processTransactions(transactions) {
         }
 
         // ethValue and fiatValue
-        const ethValue = parseFloat(web3.utils.fromWei(t.value));
-        const fiatValue = currency(ethPriceUSD).multiply(ethValue).value;
+        let ethValue = parseFloat(web3.utils.fromWei(t.value));
+        let fiatValue = currency(ethPriceUSD).multiply(ethValue).value;
+        let ethMarketplaceFee = 0;
+        let fiatMarketplaceFee = 0;
+
+        if (actionType === 'sell') {
+            const sellerPercentage = await getSellerPercentage(t.token_address);
+            const decimalPercentage = sellerPercentage / 10000;
+            const multiplyFactor = 1 - decimalPercentage;
+            ethMarketplaceFee = ethValue * decimalPercentage;
+            fiatMarketplaceFee = currency(fiatValue).multiply(decimalPercentage).value;
+            ethValue = ethValue * multiplyFactor;
+            fiatValue = currency(fiatValue).multiply(multiplyFactor).value;
+        }
 
         // ethFee and fiatFee
         const txData = await Moralis.Web3API.native.getTransaction({transaction_hash: t.transaction_hash});
@@ -172,8 +185,10 @@ async function processTransactions(transactions) {
             actionType: actionType,
             ethValue: ethValue,
             ethFee: ethFee,
+            ethMarketplaceFee: ethMarketplaceFee,
             fiatValue: fiatValue,
             fiatFee: fiatFee,
+            fiatMarketplaceFee: fiatMarketplaceFee,
             nftName: nftName,
             tokenID: t.token_id,
             walletAddress: t.wallet,
@@ -185,6 +200,29 @@ async function processTransactions(transactions) {
     }
 
     return processedTransactions;
+}
+
+async function getSellerPercentage(tokenAddress) {
+    if (!getSellerPercentage.hasOwnProperty('proxies')) {
+        getSellerPercentage.proxies = [
+            process.env.PROXY_1,
+            process.env.PROXY_2,
+            process.env.PROXY_3,
+            process.env.PROXY_4,
+            process.env.PROXY_5
+        ];
+        getSellerPercentage.proxyIndex = 0;
+    }
+
+    const proxyAgent = new HttpsProxyAgent(getSellerPercentage.proxies[getSellerPercentage.proxyIndex]);
+    getSellerPercentage.proxyIndex++;
+    if (getSellerPercentage.proxyIndex > getSellerPercentage.proxies.length - 1)
+        getSellerPercentage.proxyIndex = 0;
+
+    const response = await fetch(`https://api.opensea.io/api/v1/asset_contract/${tokenAddress}`, { agent: proxyAgent });
+    const responseJSON = await response.json();
+
+    return responseJSON.seller_fee_basis_points;
 }
 
 function seperateIntoMonths(processedTransactions) {
@@ -211,4 +249,5 @@ exports.getWalletsFile = getWalletsFile;
 exports.getWallets = getWallets;
 exports.queryMoralis = queryMoralis;
 exports.processTransactions = processTransactions;
+exports.getSellerPercentage = getSellerPercentage;
 exports.seperateIntoMonths = seperateIntoMonths;
