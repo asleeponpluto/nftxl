@@ -192,7 +192,7 @@ async function processTransactions(transactions) {
                 actionType = 'transfer (in)';
         } else if (actionType === 'sell') {
             if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === '0') {
-                if (txData.to_address === '0x0000000000000000000000000000000000000000')
+                if (t.to_address === '0x0000000000000000000000000000000000000000')
                     actionType = 'burn';
                 else
                     actionType = 'transfer (out)';
@@ -257,6 +257,11 @@ async function getSellerPercentage(tokenAddress) {
         getSellerPercentage.proxyIndex = 0;
 
     const response = await fetch(`https://api.opensea.io/api/v1/asset_contract/${tokenAddress}`, { agent: proxyAgent });
+
+    if (!response) {
+        throw new Error('getSellerPercentage failed before json parse.');
+    }
+
     const responseJSON = await response.json();
 
     if (!responseJSON || !responseJSON.seller_fee_basis_points) {
