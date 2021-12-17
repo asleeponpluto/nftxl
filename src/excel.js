@@ -48,6 +48,8 @@ async function createNFTWorksheet(processedTransactions) {
         for (let t of txnMonths[i]) {
             worksheet.addRow(t);
         }
+
+        worksheet.getColumn('date').width = 15;
     }
 
     const totalsWorksheet = workbook.addWorksheet('NFT Totals');
