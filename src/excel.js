@@ -34,18 +34,18 @@ async function createNFTWorksheet(processedTransactions) {
             { header: 'TxnHash', key: 'txnHash' },
             { header: 'From', key: 'from' },
             { header: 'To', key: 'to' },
-            { header: 'ActionType', key: 'actionType' },
-            { header: 'EthValuePreFee', key: 'ethValuePreFee' },
-            { header: 'EthGasFee', key: 'ethGasFee' },
-            { header: 'EthMarketplaceFee', key: 'ethMarketplaceFee' },
-            { header: 'EthValuePostFee', key: 'ethValuePostFee' },
-            { header: 'FiatValuePreFee', key: 'fiatValuePreFee' },
-            { header: 'FiatGasFee', key: 'fiatGasFee' },
-            { header: 'FiatMarketplaceFee', key: 'fiatMarketplaceFee' },
-            { header: 'FiatValuePostFee', key: 'fiatValuePostFee' },
-            { header: 'NftName', key: 'nftName' },
-            { header: 'TokenID', key: 'tokenID' },
-            { header: 'WalletAddress', key: 'walletAddress' },
+            { header: 'Action', key: 'actionType' },
+            { header: 'ETH Transacted (Gross)', key: 'ethValuePreFee' },
+            { header: 'Gas Fee (ETH)', key: 'ethGasFee' },
+            { header: 'Royalties (ETH)', key: 'ethMarketplaceFee' },
+            { header: 'ETH Transacted (Net)', key: 'ethValuePostFee' },
+            { header: 'USD Transacted (Gross)', key: 'fiatValuePreFee' },
+            { header: 'Gas Fee (USD)', key: 'fiatGasFee' },
+            { header: 'Royalties (USD)', key: 'fiatMarketplaceFee' },
+            { header: 'USD Transacted (Net)', key: 'fiatValuePostFee' },
+            { header: 'NFT Name', key: 'nftName' },
+            { header: 'Token', key: 'tokenID' },
+            { header: 'Wallet', key: 'walletAddress' },
             { header: 'Quantity', key: 'quantity' }
         ];
 
@@ -143,18 +143,18 @@ async function createNFTWorksheet(processedTransactions) {
 
     const totalsWorksheet = workbook.addWorksheet('NFT Totals');
     totalsWorksheet.columns = [
-        { header: 'TotalEthSpentPreFee', key: 'totalEthSpentPreFee' },
-        { header: 'TotalEthSpentGasFee', key: 'totalEthSpentGasFee' },
-        { header: 'TotalEthSpentMarketFee', key: 'totalEthSpentMarketFee' },
-        { header: 'TotalEthSpentPostFee', key: 'totalEthSpentPostFee' },
-        { header: 'TotalEthGainedPreFee', key: 'totalEthGainedPreFee' },
-        { header: 'TotalEthGainedPostFee', key: 'totalEthGainedPostFee' },
-        { header: 'TotalUSDSpentPreFee', key: 'totalUSDSpentPreFee' },
-        { header: 'TotalUSDSpentGasFee', key: 'totalUSDSpentGasFee' },
-        { header: 'TotalUSDSpentMarketFee', key: 'totalUSDSpentMarketFee' },
-        { header: 'TotalUSDSpentPostFee', key: 'totalUSDSpentPostFee' },
-        { header: 'TotalUSDGainedPreFee', key: 'totalUSDGainedPreFee' },
-        { header: 'TotalUSDGainedPostFee', key: 'totalUSDGainedPostFee' }
+        { header: 'Total ETH Spent (Gross)', key: 'totalEthSpentPreFee' },
+        { header: 'Total ETH Spent (Gas)', key: 'totalEthSpentGasFee' },
+        { header: 'Total ETH Spent (Net)', key: 'totalEthSpentPostFee' },
+        { header: 'Total ETH Received (Gross)', key: 'totalEthGainedPreFee' },
+        { header: 'Total Royalties Paid (ETH)', key: 'totalEthSpentMarketFee' },
+        { header: 'Total ETH Profit (Net)', key: 'totalEthGainedPostFee' },
+        { header: 'Total USD Spent (Gross)', key: 'totalUSDSpentPreFee' },
+        { header: 'Total USD Spent (Gas)', key: 'totalUSDSpentGasFee' },
+        { header: 'Total USD Spent (Net)', key: 'totalUSDSpentPostFee' },
+        { header: 'Total USD Received (Gross)', key: 'totalUSDGainedPreFee' },
+        { header: 'Total Royalties Paid (USD)', key: 'totalUSDSpentMarketFee' },
+        { header: 'Total USD Profit (Net)', key: 'totalUSDGainedPostFee' }
     ]
 
     let nftTotals = {
@@ -199,8 +199,8 @@ async function createNFTWorksheet(processedTransactions) {
     }
 
     // eth
-    nftTotals.totalEthSpentPostFee = nftTotals.totalEthSpentPreFee + nftTotals.totalEthSpentGasFee + nftTotals.totalEthSpentMarketFee;
-    nftTotals.totalEthGainedPostFee = nftTotals.totalEthGainedPreFee - nftTotals.totalEthSpentPostFee;
+    nftTotals.totalEthSpentPostFee = nftTotals.totalEthSpentPreFee + nftTotals.totalEthSpentGasFee;
+    nftTotals.totalEthGainedPostFee = (nftTotals.totalEthGainedPreFee - nftTotals.totalEthSpentMarketFee) - nftTotals.totalEthSpentPostFee;
 
     // usd
     nftTotals.totalUSDSpentPostFee = currency(nftTotals.totalUSDSpentPreFee).add(nftTotals.totalUSDSpentGasFee).add(nftTotals.totalUSDSpentMarketFee).value;
