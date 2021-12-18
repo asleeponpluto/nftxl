@@ -31,8 +31,14 @@ async function createNFTWorksheet(processedTransactions) {
             { header: 'Quantity', key: 'quantity' }
         ];
 
-        for (let t of txnMonths[i]) {
-            worksheet.addRow(t);
+        // dates recent to old
+        // for (let t of txnMonths[i]) {
+        //     worksheet.addRow(t);
+        // }
+
+        // dates old to recent
+        for (let j = txnMonths[i].length - 1; j >= 0; j--) {
+            worksheet.addRow(txnMonths[i][j]);
         }
 
         worksheet.getColumn('date').width = 12;
