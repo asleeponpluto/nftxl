@@ -35,10 +35,12 @@ async function createNFTWorksheet(processedTransactions) {
             { header: 'From', key: 'from' },
             { header: 'To', key: 'to' },
             { header: 'ActionType', key: 'actionType' },
-            { header: 'EthFee', key: 'ethFee' },
+            { header: 'EthValuePreFee', key: 'ethValuePreFee' },
+            { header: 'EthGasFee', key: 'ethGasFee' },
             { header: 'EthMarketplaceFee', key: 'ethMarketplaceFee' },
             { header: 'EthValuePostFee', key: 'ethValuePostFee' },
-            { header: 'FiatFee', key: 'fiatFee' },
+            { header: 'FiatValuePreFee', key: 'fiatValuePreFee' },
+            { header: 'FiatGasFee', key: 'fiatGasFee' },
             { header: 'FiatMarketplaceFee', key: 'fiatMarketplaceFee' },
             { header: 'FiatValuePostFee', key: 'fiatValuePostFee' },
             { header: 'NftName', key: 'nftName' },
@@ -56,12 +58,14 @@ async function createNFTWorksheet(processedTransactions) {
         worksheet.getColumn('from').width = 12;
         worksheet.getColumn('to').width = 12;
         worksheet.getColumn('actionType').width = 14;
-        worksheet.getColumn('ethFee').width = 12;
+        worksheet.getColumn('ethValuePreFee').width = 18;
+        worksheet.getColumn('ethGasFee').width = 12;
         worksheet.getColumn('ethMarketplaceFee').width = 20;
-        worksheet.getColumn('ethValuePostFee').width = 12;
-        worksheet.getColumn('fiatFee').width = 12;
+        worksheet.getColumn('ethValuePostFee').width = 18;
+        worksheet.getColumn('fiatValuePreFee').width = 18;
+        worksheet.getColumn('fiatGasFee').width = 12;
         worksheet.getColumn('fiatMarketplaceFee').width = 20;
-        worksheet.getColumn('fiatValuePostFee').width = 12;
+        worksheet.getColumn('fiatValuePostFee').width = 18;
         worksheet.getColumn('nftName').width = 20;
         worksheet.getColumn('tokenID').width = 12;
         worksheet.getColumn('walletAddress').width = 16;
@@ -139,60 +143,83 @@ async function createNFTWorksheet(processedTransactions) {
 
     const totalsWorksheet = workbook.addWorksheet('NFT Totals');
     totalsWorksheet.columns = [
-        { header: 'Total Eth Spent', key: 'totalEthSpent' },
-        { header: 'Total USD Spent', key: 'totalUSDSpent' },
-        { header: 'Total Eth Gained', key: 'totalEthGained' },
-        { header: 'Total USD Gained', key: 'totalUSDGained' },
-        { header: 'Total Fees Eth', key: 'totalFeesEth' },
-        { header: 'Total Fees USD', key: 'totalFeesUSD' },
-        { header: 'Total Marketplace Fees Eth', key: 'totalMarketplaceFeesEth' },
-        { header: 'Total Marketplace Fees USD', key: 'totalMarketplaceFeesUSD' },
-        { header: 'Total Profit Eth', key: 'totalProfitEth' },
-        { header: 'Total Profit USD', key: 'totalProfitUSD' }
+        { header: 'TotalEthSpentPreFee', key: 'totalEthSpentPreFee' },
+        { header: 'TotalEthSpentGasFee', key: 'totalEthSpentGasFee' },
+        { header: 'TotalEthSpentMarketFee', key: 'totalEthSpentMarketFee' },
+        { header: 'TotalEthSpentPostFee', key: 'totalEthSpentPostFee' },
+        { header: 'TotalEthGainedPreFee', key: 'totalEthGainedPreFee' },
+        { header: 'TotalEthGainedPostFee', key: 'totalEthGainedPostFee' },
+        { header: 'TotalUSDSpentPreFee', key: 'totalUSDSpentPreFee' },
+        { header: 'TotalUSDSpentGasFee', key: 'totalUSDSpentGasFee' },
+        { header: 'TotalUSDSpentMarketFee', key: 'totalUSDSpentMarketFee' },
+        { header: 'TotalUSDSpentPostFee', key: 'totalUSDSpentPostFee' },
+        { header: 'TotalUSDGainedPreFee', key: 'totalUSDGainedPreFee' },
+        { header: 'TotalUSDGainedPostFee', key: 'totalUSDGainedPostFee' }
     ]
 
     let nftTotals = {
-        totalEthSpent: 0, // mint buy
-        totalUSDSpent: 0,
-        totalEthGained: 0, // sell
-        totalUSDGained: 0,
-        totalFeesEth: 0, // mint buy
-        totalFeesUSD: 0,
-        totalMarketplaceFeesEth: 0,
-        totalMarketplaceFeesUSD: 0,
-        totalProfitEth: 0,
-        totalProfitUSD: 0
+        totalEthSpentPreFee: 0,
+        totalEthSpentGasFee: 0,
+        totalEthSpentMarketFee: 0,
+        totalEthSpentPostFee: 0,
+        totalEthGainedPreFee: 0,
+        totalEthGainedPostFee: 0,
+        totalUSDSpentPreFee: 0,
+        totalUSDSpentGasFee: 0,
+        totalUSDSpentMarketFee: 0,
+        totalUSDSpentPostFee: 0,
+        totalUSDGainedPreFee: 0,
+        totalUSDGainedPostFee: 0
     };
 
     for (let t of processedTransactions) {
-        if (t.actionType !== 'sell') {
-            nftTotals.totalEthSpent += t.ethValuePostFee;
-            nftTotals.totalUSDSpent = currency(nftTotals.totalUSDSpent).add(t.fiatValuePostFee).value;
-            nftTotals.totalFeesEth += t.ethFee;
-            nftTotals.totalFeesUSD = currency(nftTotals.totalFeesUSD).add(t.fiatFee).value;
-        } else {
-            nftTotals.totalEthGained += t.ethValuePostFee;
-            nftTotals.totalUSDGained = currency(nftTotals.totalUSDGained).add(t.fiatValuePostFee).value;
-        }
+        if (t.actionType === 'buy' || t.actionType === 'mint' || t.actionType === 'transfer (out)') {
+            // eth
+            nftTotals.totalEthSpentPreFee += t.ethValuePreFee;
+            nftTotals.totalEthSpentGasFee += t.ethGasFee;
 
-        nftTotals.totalMarketplaceFeesEth += t.ethMarketplaceFee;
-        nftTotals.totalMarketplaceFeesUSD += t.fiatMarketplaceFee;
+            // usd
+            nftTotals.totalUSDSpentPreFee = currency(nftTotals.totalUSDSpentPreFee).add(t.fiatValuePreFee).value;
+            nftTotals.totalUSDSpentGasFee = currency(nftTotals.totalUSDSpentGasFee).add(t.fiatGasFee).value;
+        } else if (t.actionType === 'sell') {
+            // eth
+            nftTotals.totalEthSpentMarketFee += t.ethMarketplaceFee;
+            nftTotals.totalEthGainedPreFee += t.ethValuePreFee;
+
+            // usd
+            nftTotals.totalUSDSpentMarketFee = currency(nftTotals.totalUSDSpentMarketFee).add(t.fiatMarketplaceFee).value;
+            nftTotals.totalUSDGainedPreFee = currency(nftTotals.totalUSDGainedPreFee).add(t.fiatValuePreFee).value;
+        } else if (t.actionType === 'transfer (in)') {
+            // eth
+            nftTotals.totalEthGainedPreFee += t.ethValuePreFee;
+
+            // usd
+            nftTotals.totalUSDGainedPreFee = currency(nftTotals.totalUSDGainedPreFee).add(t.fiatValuePreFee).value;
+        }
     }
 
-    nftTotals.totalProfitEth = nftTotals.totalEthGained - nftTotals.totalEthSpent - nftTotals.totalFeesEth;
-    nftTotals.totalProfitUSD = nftTotals.totalUSDGained - nftTotals.totalUSDSpent - nftTotals.totalFeesUSD;
+    // eth
+    nftTotals.totalEthSpentPostFee = nftTotals.totalEthSpentPreFee + nftTotals.totalEthSpentGasFee + nftTotals.totalEthSpentMarketFee;
+    nftTotals.totalEthGainedPostFee = nftTotals.totalEthGainedPreFee - nftTotals.totalEthSpentPostFee;
+
+    // usd
+    nftTotals.totalUSDSpentPostFee = currency(nftTotals.totalUSDSpentPreFee).add(nftTotals.totalUSDSpentGasFee).add(nftTotals.totalUSDSpentMarketFee).value;
+    nftTotals.totalUSDGainedPostFee = currency(nftTotals.totalUSDGainedPreFee).subtract(nftTotals.totalUSDSpentPostFee).value;
+
     totalsWorksheet.addRow(nftTotals);
 
-    totalsWorksheet.getColumn('totalEthSpent').width = 18;
-    totalsWorksheet.getColumn('totalUSDSpent').width = 18;
-    totalsWorksheet.getColumn('totalEthGained').width = 18;
-    totalsWorksheet.getColumn('totalUSDGained').width = 18;
-    totalsWorksheet.getColumn('totalFeesEth').width = 18;
-    totalsWorksheet.getColumn('totalFeesUSD').width = 18;
-    totalsWorksheet.getColumn('totalMarketplaceFeesEth').width = 26;
-    totalsWorksheet.getColumn('totalMarketplaceFeesUSD').width = 26;
-    totalsWorksheet.getColumn('totalProfitEth').width = 18;
-    totalsWorksheet.getColumn('totalProfitUSD').width = 18;
+    totalsWorksheet.getColumn('totalEthSpentPreFee').width = 22;
+    totalsWorksheet.getColumn('totalEthSpentGasFee').width = 22;
+    totalsWorksheet.getColumn('totalEthSpentMarketFee').width = 24;
+    totalsWorksheet.getColumn('totalEthSpentPostFee').width = 22;
+    totalsWorksheet.getColumn('totalEthGainedPreFee').width = 22;
+    totalsWorksheet.getColumn('totalEthGainedPostFee').width = 22;
+    totalsWorksheet.getColumn('totalUSDSpentPreFee').width = 22;
+    totalsWorksheet.getColumn('totalUSDSpentGasFee').width = 22;
+    totalsWorksheet.getColumn('totalUSDSpentMarketFee').width = 24;
+    totalsWorksheet.getColumn('totalUSDSpentPostFee').width = 22;
+    totalsWorksheet.getColumn('totalUSDGainedPreFee').width = 22;
+    totalsWorksheet.getColumn('totalUSDGainedPostFee').width = 22;
 
     totalsWorksheet.getRow(1).eachCell((cell) => {
         cell.fill = {
@@ -201,6 +228,17 @@ async function createNFTWorksheet(processedTransactions) {
             fgColor: {argb: 'FFBABABA'}
         };
     });
+
+    totalsWorksheet.getRow(1).getCell('totalEthGainedPostFee').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: {argb: 'FFCCFFCC'}
+    };
+    totalsWorksheet.getRow(1).getCell('totalUSDGainedPostFee').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: {argb: 'FFCCFFCC'}
+    };
 
     await workbook.xlsx.writeFile('something.xlsx');
 }

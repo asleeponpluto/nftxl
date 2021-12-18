@@ -167,9 +167,9 @@ async function processTransactions(transactions) {
         }
 
         // ethValue and fiatValue
-        let ethValuePreFee = parseFloat(web3.utils.fromWei(t.value));
+        const ethValuePreFee = parseFloat(web3.utils.fromWei(t.value));
         let ethValuePostFee = ethValuePreFee;
-        let fiatValuePreFee = currency(ethPriceUSD).multiply(ethValuePostFee).value;
+        const fiatValuePreFee = currency(ethPriceUSD).multiply(ethValuePostFee).value;
         let fiatValuePostFee = fiatValuePreFee;
         let ethMarketplaceFee = 0;
         let fiatMarketplaceFee = 0;
@@ -180,8 +180,8 @@ async function processTransactions(transactions) {
             return await Moralis.Web3API.native.getTransaction({transaction_hash: t.transaction_hash});
         });
         const gasPriceEth = parseFloat(web3.utils.fromWei(txData.gas_price));
-        const ethFee = gasPriceEth * txData.receipt_gas_used;
-        const fiatFee = currency(ethPriceUSD).multiply(ethFee).value;
+        const ethGasFee = gasPriceEth * txData.receipt_gas_used;
+        const fiatGasFee = currency(ethPriceUSD).multiply(ethGasFee).value;
 
         // transaction data
         console.log(`getNFTMetadata: ${t.token_address}`);
@@ -216,11 +216,13 @@ async function processTransactions(transactions) {
                 marketFeeMap.set(t.token_address, sellerPercentage);
             }
             const decimalPercentage = sellerPercentage / 10000;
-            const multiplyFactor = 1 - decimalPercentage;
-            ethMarketplaceFee = ethValuePostFee * decimalPercentage;
-            fiatMarketplaceFee = currency(fiatValuePostFee).multiply(decimalPercentage).value;
-            ethValuePostFee = ethValuePostFee * multiplyFactor;
-            fiatValuePostFee = currency(fiatValuePostFee).multiply(multiplyFactor).value;
+            ethMarketplaceFee = ethValuePreFee * decimalPercentage;
+            fiatMarketplaceFee = currency(ethPriceUSD).multiply(ethMarketplaceFee).value;
+            ethValuePostFee -= ethMarketplaceFee;
+            fiatValuePostFee = currency(ethPriceUSD).multiply(ethValuePostFee).value;
+        } else if (actionType === 'buy' || actionType === 'mint' || actionType === 'burn' || actionType === 'transfer (out)') {
+            ethValuePostFee += ethGasFee;
+            fiatValuePostFee = currency(ethPriceUSD).multiply(ethValuePostFee).value;
         }
 
         let tempObj = {
@@ -230,11 +232,11 @@ async function processTransactions(transactions) {
             to: t.to_address,
             actionType: actionType,
             ethValuePreFee: ethValuePreFee,
-            ethFee: ethFee,
+            ethGasFee: ethGasFee,
             ethMarketplaceFee: ethMarketplaceFee,
             ethValuePostFee: ethValuePostFee,
             fiatValuePreFee: fiatValuePreFee,
-            fiatFee: fiatFee,
+            fiatGasFee: fiatGasFee,
             fiatMarketplaceFee: fiatMarketplaceFee,
             fiatValuePostFee: fiatValuePostFee,
             nftName: nftName,
