@@ -35,12 +35,12 @@ async function createNFTWorksheet(processedTransactions) {
             { header: 'From', key: 'from' },
             { header: 'To', key: 'to' },
             { header: 'ActionType', key: 'actionType' },
-            { header: 'EthValue', key: 'ethValue' },
             { header: 'EthFee', key: 'ethFee' },
             { header: 'EthMarketplaceFee', key: 'ethMarketplaceFee' },
-            { header: 'FiatValue', key: 'fiatValue' },
+            { header: 'EthValuePostFee', key: 'ethValuePostFee' },
             { header: 'FiatFee', key: 'fiatFee' },
             { header: 'FiatMarketplaceFee', key: 'fiatMarketplaceFee' },
+            { header: 'FiatValuePostFee', key: 'fiatValuePostFee' },
             { header: 'NftName', key: 'nftName' },
             { header: 'TokenID', key: 'tokenID' },
             { header: 'WalletAddress', key: 'walletAddress' },
@@ -56,19 +56,19 @@ async function createNFTWorksheet(processedTransactions) {
         worksheet.getColumn('from').width = 12;
         worksheet.getColumn('to').width = 12;
         worksheet.getColumn('actionType').width = 14;
-        worksheet.getColumn('ethValue').width = 12;
         worksheet.getColumn('ethFee').width = 12;
         worksheet.getColumn('ethMarketplaceFee').width = 20;
-        worksheet.getColumn('fiatValue').width = 12;
+        worksheet.getColumn('ethValuePostFee').width = 12;
         worksheet.getColumn('fiatFee').width = 12;
         worksheet.getColumn('fiatMarketplaceFee').width = 20;
+        worksheet.getColumn('fiatValuePostFee').width = 12;
         worksheet.getColumn('nftName').width = 20;
         worksheet.getColumn('tokenID').width = 12;
         worksheet.getColumn('walletAddress').width = 16;
         worksheet.getColumn('quantity').width = 12;
 
         worksheet.addConditionalFormatting({
-            ref: `A2:O${worksheet.rowCount}`,
+            ref: `A2:${worksheet.lastColumn.letter}${worksheet.lastRow.number}`,
             rules: [
                 {
                     type: 'expression',
@@ -166,13 +166,13 @@ async function createNFTWorksheet(processedTransactions) {
 
     for (let t of processedTransactions) {
         if (t.actionType !== 'sell') {
-            nftTotals.totalEthSpent += t.ethValue;
-            nftTotals.totalUSDSpent = currency(nftTotals.totalUSDSpent).add(t.fiatValue).value;
+            nftTotals.totalEthSpent += t.ethValuePostFee;
+            nftTotals.totalUSDSpent = currency(nftTotals.totalUSDSpent).add(t.fiatValuePostFee).value;
             nftTotals.totalFeesEth += t.ethFee;
             nftTotals.totalFeesUSD = currency(nftTotals.totalFeesUSD).add(t.fiatFee).value;
         } else {
-            nftTotals.totalEthGained += t.ethValue;
-            nftTotals.totalUSDGained = currency(nftTotals.totalUSDGained).add(t.fiatValue).value;
+            nftTotals.totalEthGained += t.ethValuePostFee;
+            nftTotals.totalUSDGained = currency(nftTotals.totalUSDGained).add(t.fiatValuePostFee).value;
         }
 
         nftTotals.totalMarketplaceFeesEth += t.ethMarketplaceFee;

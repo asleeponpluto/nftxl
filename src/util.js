@@ -167,8 +167,10 @@ async function processTransactions(transactions) {
         }
 
         // ethValue and fiatValue
-        let ethValue = parseFloat(web3.utils.fromWei(t.value));
-        let fiatValue = currency(ethPriceUSD).multiply(ethValue).value;
+        let ethValuePreFee = parseFloat(web3.utils.fromWei(t.value));
+        let ethValuePostFee = ethValuePreFee;
+        let fiatValuePreFee = currency(ethPriceUSD).multiply(ethValuePostFee).value;
+        let fiatValuePostFee = fiatValuePreFee;
         let ethMarketplaceFee = 0;
         let fiatMarketplaceFee = 0;
 
@@ -215,10 +217,10 @@ async function processTransactions(transactions) {
             }
             const decimalPercentage = sellerPercentage / 10000;
             const multiplyFactor = 1 - decimalPercentage;
-            ethMarketplaceFee = ethValue * decimalPercentage;
-            fiatMarketplaceFee = currency(fiatValue).multiply(decimalPercentage).value;
-            ethValue = ethValue * multiplyFactor;
-            fiatValue = currency(fiatValue).multiply(multiplyFactor).value;
+            ethMarketplaceFee = ethValuePostFee * decimalPercentage;
+            fiatMarketplaceFee = currency(fiatValuePostFee).multiply(decimalPercentage).value;
+            ethValuePostFee = ethValuePostFee * multiplyFactor;
+            fiatValuePostFee = currency(fiatValuePostFee).multiply(multiplyFactor).value;
         }
 
         let tempObj = {
@@ -227,12 +229,14 @@ async function processTransactions(transactions) {
             from: t.from_address,
             to: t.to_address,
             actionType: actionType,
-            ethValue: ethValue,
+            ethValuePreFee: ethValuePreFee,
             ethFee: ethFee,
             ethMarketplaceFee: ethMarketplaceFee,
-            fiatValue: fiatValue,
+            ethValuePostFee: ethValuePostFee,
+            fiatValuePreFee: fiatValuePreFee,
             fiatFee: fiatFee,
             fiatMarketplaceFee: fiatMarketplaceFee,
+            fiatValuePostFee: fiatValuePostFee,
             nftName: nftName,
             tokenID: t.token_id,
             walletAddress: t.wallet,
