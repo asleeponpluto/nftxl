@@ -6,24 +6,6 @@ const util = require('./util');
 async function createNFTWorksheet(processedTransactions) {
     const workbook = new ExcelJS.Workbook();
     const months = ["Jan", "Feb", "Mar" ,"Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    // {
-    //     date: 2021-11-07T20:37:46.000Z,
-    //     txnHash: '0x973f11368477d5f633bdee87e9811fd3abf8b87eb05fb8970d0fdc389e36363b',
-    //     to: '0x95b39f96942c2482d733f7f972adcae04823dbad',
-    //     from: '0xbf9aa536d6e151488c1059742398fc3574725dad',
-    //     actionType: 'buy',
-    //     ethValue: 0.25,
-    //     ethFee: 0.024064931381211074,
-    //     fiatValue: 1130.93,
-    //     fiatFee: 108.86,
-    //     nftName: 'Cosmic Labs',
-    //     tokenID: '2464',
-    //     walletAddress: '0x95b39f96942c2482d733f7f972adcae04823dbad',
-    //     quantity: 1
-    // }
-
-
     const txnMonths = util.separateIntoMonths(processedTransactions);
 
     for (let i = 0; i < 12; i++) {
@@ -200,11 +182,11 @@ async function createNFTWorksheet(processedTransactions) {
 
     // eth
     nftTotals.totalEthSpentPostFee = nftTotals.totalEthSpentPreFee + nftTotals.totalEthSpentGasFee;
-    nftTotals.totalEthGainedPostFee = (nftTotals.totalEthGainedPreFee - nftTotals.totalEthSpentMarketFee) - nftTotals.totalEthSpentPostFee;
+    nftTotals.totalEthGainedPostFee = nftTotals.totalEthGainedPreFee - nftTotals.totalEthSpentMarketFee - nftTotals.totalEthSpentPostFee;
 
     // usd
-    nftTotals.totalUSDSpentPostFee = currency(nftTotals.totalUSDSpentPreFee).add(nftTotals.totalUSDSpentGasFee).add(nftTotals.totalUSDSpentMarketFee).value;
-    nftTotals.totalUSDGainedPostFee = currency(nftTotals.totalUSDGainedPreFee).subtract(nftTotals.totalUSDSpentPostFee).value;
+    nftTotals.totalUSDSpentPostFee = currency(nftTotals.totalUSDSpentPreFee).add(nftTotals.totalUSDSpentGasFee).value;
+    nftTotals.totalUSDGainedPostFee = currency(nftTotals.totalUSDGainedPreFee).subtract(nftTotals.totalEthSpentMarketFee).subtract(nftTotals.totalUSDSpentPostFee).value;
 
     totalsWorksheet.addRow(nftTotals);
 

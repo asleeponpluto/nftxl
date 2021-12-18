@@ -134,8 +134,8 @@ async function queryMoralis(inputWallets) {
 
 async function processTransactions(transactions) {
     let processedTransactions = [];
-    const ethValueMap = new Map();
-    const marketFeeMap = new Map();
+    const ethValueMap = JSONFileToMap('ethValues.json');
+    const marketFeeMap = JSONFileToMap('marketFees.json');
     let count = 1;
 
     for (let t of transactions) {
@@ -250,6 +250,8 @@ async function processTransactions(transactions) {
         await timeout(160);
     }
 
+    mapToJSONFile(ethValueMap, 'ethValues.json');
+    mapToJSONFile(marketFeeMap, 'marketFees.json');
     return processedTransactions;
 }
 
@@ -289,7 +291,7 @@ async function getSellerPercentage(tokenAddress) {
 function separateIntoMonths(processedTransactions) {
     const txnMonths = new Array(12);
 
-    // initialize with 12 empty arrays for each month
+    // initialize with 12 empty arrays: one for each month
     for (let i = 0; i < 12; i++) {
         txnMonths[i] = [];
     }
@@ -304,6 +306,19 @@ function separateIntoMonths(processedTransactions) {
     return txnMonths;
 }
 
+function mapToJSONFile(someMap, writePath) {
+    const objToWrite = Object.fromEntries(someMap);
+    const JSONToWrite = JSON.stringify(objToWrite);
+    fs.writeFileSync(writePath, JSONToWrite);
+}
+
+function JSONFileToMap(readPath) {
+    if (!fs.existsSync(readPath)) return new Map();
+    const readJSON = fs.readFileSync(readPath, {encoding: 'utf8'});
+    const readObj = JSON.parse(readJSON);
+    return new Map(Object.entries(readObj));
+}
+
 exports.timeout = timeout;
 exports.retryIfError = retryIfError;
 exports.getWalletsPrompt = getWalletsPrompt;
@@ -313,3 +328,5 @@ exports.queryMoralis = queryMoralis;
 exports.processTransactions = processTransactions;
 exports.getSellerPercentage = getSellerPercentage;
 exports.separateIntoMonths = separateIntoMonths;
+exports.mapToJSONFile = mapToJSONFile;
+exports.JSONFileToMap = JSONFileToMap;
