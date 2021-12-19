@@ -41,19 +41,39 @@ async function createNFTWorksheet(processedTransactions) {
             worksheet.addRow(txnMonths[i][j]);
         }
 
+        const columnsWithSums = [
+            'ethValuePreFee',
+            'ethGasFee',
+            'ethMarketplaceFee',
+            'ethValuePostFee',
+            'fiatValuePreFee',
+            'fiatGasFee',
+            'fiatMarketplaceFee',
+            'fiatValuePostFee',
+            'quantity'
+        ];
+
+        const lastRowNum = worksheet.lastRow.number;
+        for (let colKey of columnsWithSums) {
+            const colLetter = worksheet.getColumn(colKey).letter;
+            worksheet.getCell(`${colLetter}${lastRowNum + 2}`).value = {
+                formula: `SUM(${colLetter}2:${colLetter}${lastRowNum})`
+            };
+        }
+
         worksheet.getColumn('date').width = 12;
         worksheet.getColumn('txnHash').width = 12;
         worksheet.getColumn('from').width = 12;
         worksheet.getColumn('to').width = 12;
         worksheet.getColumn('actionType').width = 14;
-        worksheet.getColumn('ethValuePreFee').width = 18;
-        worksheet.getColumn('ethGasFee').width = 12;
-        worksheet.getColumn('ethMarketplaceFee').width = 20;
-        worksheet.getColumn('ethValuePostFee').width = 18;
-        worksheet.getColumn('fiatValuePreFee').width = 18;
-        worksheet.getColumn('fiatGasFee').width = 12;
-        worksheet.getColumn('fiatMarketplaceFee').width = 20;
-        worksheet.getColumn('fiatValuePostFee').width = 18;
+        worksheet.getColumn('ethValuePreFee').width = 22;
+        worksheet.getColumn('ethGasFee').width = 14;
+        worksheet.getColumn('ethMarketplaceFee').width = 18;
+        worksheet.getColumn('ethValuePostFee').width = 22;
+        worksheet.getColumn('fiatValuePreFee').width = 22;
+        worksheet.getColumn('fiatGasFee').width = 14;
+        worksheet.getColumn('fiatMarketplaceFee').width = 18;
+        worksheet.getColumn('fiatValuePostFee').width = 22;
         worksheet.getColumn('nftName').width = 20;
         worksheet.getColumn('tokenID').width = 12;
         worksheet.getColumn('walletAddress').width = 16;
@@ -127,6 +147,21 @@ async function createNFTWorksheet(processedTransactions) {
             //     right: {style:'thin'}
             // };
         });
+
+        worksheet.columns.forEach((col) => {
+            worksheet.lastRow.getCell(col.letter).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: {argb: 'FFF2F2F2'}
+            };
+
+            worksheet.lastRow.getCell(col.letter).border = {
+                top: {style:'thin', color:{argb:'FF7F7F7F'}},
+                left: {style:'thin', color:{argb:'FF7F7F7F'}},
+                bottom: {style:'thin', color:{argb:'FF7F7F7F'}},
+                right: {style:'thin', color:{argb:'FF7F7F7F'}}
+            };
+        });
     }
 
     const totalsWorksheet = workbook.addWorksheet('NFT Totals');
@@ -148,15 +183,15 @@ async function createNFTWorksheet(processedTransactions) {
     let nftTotals = {
         totalEthSpentPreFee: 0,
         totalEthSpentGasFee: 0,
-        totalEthSpentMarketFee: 0,
         totalEthSpentPostFee: 0,
         totalEthGainedPreFee: 0,
+        totalEthSpentMarketFee: 0,
         totalEthGainedPostFee: 0,
         totalUSDSpentPreFee: 0,
         totalUSDSpentGasFee: 0,
-        totalUSDSpentMarketFee: 0,
         totalUSDSpentPostFee: 0,
         totalUSDGainedPreFee: 0,
+        totalUSDSpentMarketFee: 0,
         totalUSDGainedPostFee: 0
     };
 
@@ -198,15 +233,15 @@ async function createNFTWorksheet(processedTransactions) {
 
     totalsWorksheet.getColumn('totalEthSpentPreFee').width = 22;
     totalsWorksheet.getColumn('totalEthSpentGasFee').width = 22;
-    totalsWorksheet.getColumn('totalEthSpentMarketFee').width = 24;
     totalsWorksheet.getColumn('totalEthSpentPostFee').width = 22;
-    totalsWorksheet.getColumn('totalEthGainedPreFee').width = 22;
+    totalsWorksheet.getColumn('totalEthGainedPreFee').width = 24;
+    totalsWorksheet.getColumn('totalEthSpentMarketFee').width = 24;
     totalsWorksheet.getColumn('totalEthGainedPostFee').width = 22;
     totalsWorksheet.getColumn('totalUSDSpentPreFee').width = 22;
     totalsWorksheet.getColumn('totalUSDSpentGasFee').width = 22;
-    totalsWorksheet.getColumn('totalUSDSpentMarketFee').width = 24;
     totalsWorksheet.getColumn('totalUSDSpentPostFee').width = 22;
-    totalsWorksheet.getColumn('totalUSDGainedPreFee').width = 22;
+    totalsWorksheet.getColumn('totalUSDGainedPreFee').width = 24;
+    totalsWorksheet.getColumn('totalUSDSpentMarketFee').width = 24;
     totalsWorksheet.getColumn('totalUSDGainedPostFee').width = 22;
 
     totalsWorksheet.getRow(1).eachCell((cell) => {
