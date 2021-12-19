@@ -14,6 +14,14 @@ async function main() {
     let cleanTransactionArr = await util.queryMoralis(inputWallets);
     console.log(chalk.greenBright(`${cleanTransactionArr.length} total transactions to process...\n`));
     let processedTransactions = await util.processTransactions(cleanTransactionArr);
+    util.objToJSONFile(processedTransactions, 'processed.json');
+
+    /*
+    let processedTransactions = util.JSONFileToObj('processed.json');
+    for (let t of processedTransactions) {
+        t.date = new Date(t.date);
+    }
+    */
 
     // console.log(processedTransactions);
     console.log(chalk.magentaBright('Generating excel workbook...'))

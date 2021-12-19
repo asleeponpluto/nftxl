@@ -227,6 +227,9 @@ async function processTransactions(transactions) {
             fiatValuePostFee = currency(ethPriceUSD).multiply(ethValuePostFee).value;
         }
 
+        // paidForTransfer
+        const paidForTransfer = (actionType === 'transfer (in)' && txData.from_address === t.wallet);
+
         let tempObj = {
             date: new Date(t.block_timestamp),
             txnHash: t.transaction_hash,
@@ -244,7 +247,8 @@ async function processTransactions(transactions) {
             nftName: nftName,
             tokenID: t.token_id,
             walletAddress: t.wallet,
-            quantity: t.quantity
+            quantity: t.quantity,
+            paidForTransfer: paidForTransfer
         }
 
         console.log();
@@ -332,6 +336,19 @@ function JSONFileToMap(readPath) {
     return new Map(Object.entries(readObj));
 }
 
+function objToJSONFile(someArray, writePath) {
+    const JSONToWrite = JSON.stringify(someArray);
+    fs.writeFileSync(writePath, JSONToWrite);
+}
+
+function JSONFileToObj(readPath) {
+    if (!fs.existsSync(readPath)) return [];
+    const readJSON = fs.readFileSync(readPath, {encoding: 'utf8'});
+    const readArr = JSON.parse(readJSON);
+
+    return readArr;
+}
+
 exports.timeout = timeout;
 exports.retryIfError = retryIfError;
 exports.getWalletsPrompt = getWalletsPrompt;
@@ -343,3 +360,5 @@ exports.getSellerPercentage = getSellerPercentage;
 exports.separateIntoMonths = separateIntoMonths;
 exports.mapToJSONFile = mapToJSONFile;
 exports.JSONFileToMap = JSONFileToMap;
+exports.objToJSONFile = objToJSONFile;
+exports.JSONFileToObj = JSONFileToObj;

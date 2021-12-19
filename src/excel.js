@@ -196,7 +196,7 @@ async function createNFTWorksheet(processedTransactions) {
     };
 
     for (let t of processedTransactions) {
-        if (t.actionType === 'buy' || t.actionType === 'mint' || t.actionType === 'transfer (out)') {
+        if (t.actionType === 'buy' || t.actionType === 'mint' || t.actionType === 'transfer (out)' || t.paidForTransfer) {
             // eth
             nftTotals.totalEthSpentPreFee += t.ethValuePreFee;
             nftTotals.totalEthSpentGasFee += t.ethGasFee;
@@ -227,7 +227,7 @@ async function createNFTWorksheet(processedTransactions) {
 
     // usd
     nftTotals.totalUSDSpentPostFee = currency(nftTotals.totalUSDSpentPreFee).add(nftTotals.totalUSDSpentGasFee).value;
-    nftTotals.totalUSDGainedPostFee = currency(nftTotals.totalUSDGainedPreFee).subtract(nftTotals.totalEthSpentMarketFee).subtract(nftTotals.totalUSDSpentPostFee).value;
+    nftTotals.totalUSDGainedPostFee = currency(nftTotals.totalUSDGainedPreFee).subtract(nftTotals.totalUSDSpentMarketFee).subtract(nftTotals.totalUSDSpentPostFee).value;
 
     totalsWorksheet.addRow(nftTotals);
 
