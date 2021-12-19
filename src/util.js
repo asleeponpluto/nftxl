@@ -71,6 +71,7 @@ async function getWallets() {
 
 async function queryMoralis(inputWallets) {
     let cleanTransactionArr = [];
+    const txnHashMap = new Map(); // to check for duplicates and increase quantity
 
     for (let wallet of inputWallets) {
         let page = 0;
@@ -108,15 +109,14 @@ async function queryMoralis(inputWallets) {
 
             if (transactions.result.length !== 0) {
                 for (let i = 0; i < transactions.result.length; i++) {
-                    // TODO better duplicate checking (implement a set of all txHashes for fast searching)
-                    if (cleanTransactionArr.length === 0 ||
-                        transactions.result[i].transaction_hash !== cleanTransactionArr[cleanTransactionArr.length - 1].transaction_hash
-                       ) {
-                        cleanTransactionArr.push(transactions.result[i]);
+                    const txn = transactions.result[i];
+                    if (!txnHashMap.has(txn.transaction_hash)) {
+                        cleanTransactionArr.push(txn);
                         cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
                         cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
+                        txnHashMap.set(txn.transaction_hash, cleanTransactionArr.length - 1);
                     } else {
-                        cleanTransactionArr[cleanTransactionArr.length - 1].quantity++;
+                        cleanTransactionArr[txnHashMap.get(txn.transaction_hash)].quantity++;
                     }
                 }
             } else {
