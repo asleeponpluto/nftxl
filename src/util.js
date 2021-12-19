@@ -144,15 +144,17 @@ async function processTransactions(transactions) {
         // value of ether at transaction date
         let transactionDate = new Date(t.block_timestamp);
         let formattedDate = transactionDate.toISOString().split('T')[0];
+        let ethPriceUSD;
         if (!ethValueMap.has(formattedDate)) {
-            const result = await fetch(`https://api.coinbase.com/v2/prices/eth-usd/spot?date=${formattedDate}`);
-            const resultJSON = await result.json();
-            ethValueMap.set(formattedDate, resultJSON.data.amount);
+            ethPriceUSD = await retryIfError(async () => {
+                return await getEthPriceForDay(formattedDate);
+            });
+            ethValueMap.set(formattedDate, ethPriceUSD);
             console.log(chalk.cyan('coinbase req'));
         } else {
+            ethPriceUSD = ethValueMap.get(formattedDate);
             console.log(chalk.cyan('ethValue cached'));
         }
-        const ethPriceUSD = ethValueMap.get(formattedDate);
 
         // action type
         let actionType;
@@ -253,6 +255,17 @@ async function processTransactions(transactions) {
     mapToJSONFile(ethValueMap, 'ethValues.json');
     mapToJSONFile(marketFeeMap, 'marketFees.json');
     return processedTransactions;
+}
+
+async function getEthPriceForDay(formattedDate) {
+    const response = await fetch(`https://api.coinbase.com/v2/prices/eth-usd/spot?date=${formattedDate}`);
+    const responseJSON = await response.json();
+
+    if (!response || !response.ok || !responseJSON || !responseJSON.data || !responseJSON.data.amount) {
+        throw new Error('getEthPriceForDay failed...');
+    }
+
+    return responseJSON.data.amount;
 }
 
 async function getSellerPercentage(tokenAddress) {
