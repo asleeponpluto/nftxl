@@ -195,9 +195,6 @@ async function processTransactions(transactions) {
         // transfer (in), transfer (out), burn
         if (actionType === 'buy') {
             if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === '0') {
-                if (txData.to_address === t.wallet)
-                    actionType = 'airdrop';
-                else
                     actionType = 'transfer (in)';
             }
         } else if (actionType === 'sell') {
@@ -207,6 +204,9 @@ async function processTransactions(transactions) {
                 else
                     actionType = 'transfer (out)';
             }
+        } else if (actionType === 'mint') {
+            if (txData.from_address !== t.wallet)
+                actionType = 'airdrop';
         }
 
         // marketplace fee (must come after transfer (in), transfer (out), burn calculations)

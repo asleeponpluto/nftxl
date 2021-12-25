@@ -14,7 +14,7 @@ async function main() {
     let cleanTransactionArr = await util.queryMoralis(inputWallets);
     console.log(chalk.greenBright(`${cleanTransactionArr.length} total transactions to process...\n`));
     let processedTransactions = await util.processTransactions(cleanTransactionArr);
-    util.objToJSONFile(processedTransactions, 'processed.json');
+    // util.objToJSONFile(processedTransactions, 'processed.json');
 
     /*
     let processedTransactions = util.JSONFileToObj('processed.json');
