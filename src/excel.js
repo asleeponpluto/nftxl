@@ -196,6 +196,8 @@ async function createNFTWorksheet(processedTransactions) {
     };
 
     for (let t of processedTransactions) {
+        // TODO add burn here
+        // TODO paidForTransfer shouldn't add to totalEthSpentPreFee... only gas fee (confirm)
         if (t.actionType === 'buy' || t.actionType === 'mint' || t.actionType === 'transfer (out)' || t.paidForTransfer) {
             // eth
             nftTotals.totalEthSpentPreFee += t.ethValuePreFee;

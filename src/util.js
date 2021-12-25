@@ -194,8 +194,12 @@ async function processTransactions(transactions) {
 
         // transfer (in), transfer (out), burn
         if (actionType === 'buy') {
-            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === '0')
-                actionType = 'transfer (in)';
+            if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === '0') {
+                if (txData.to_address === t.wallet)
+                    actionType = 'airdrop';
+                else
+                    actionType = 'transfer (in)';
+            }
         } else if (actionType === 'sell') {
             if (txData.to_address !== '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b' && t.value === '0') {
                 if (t.to_address === '0x0000000000000000000000000000000000000000')
@@ -228,7 +232,7 @@ async function processTransactions(transactions) {
         }
 
         // paidForTransfer
-        const paidForTransfer = (actionType === 'transfer (in)' && txData.from_address === t.wallet);
+        const paidForTransfer = (actionType === 'transfer (in)' || actionType === 'airdrop') && txData.from_address === t.wallet;
 
         let tempObj = {
             date: new Date(t.block_timestamp),
