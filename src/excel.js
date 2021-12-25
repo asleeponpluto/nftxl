@@ -61,6 +61,7 @@ async function createNFTWorksheet(processedTransactions) {
             };
         }
 
+        // monthly column widths
         worksheet.getColumn('date').width = 12;
         worksheet.getColumn('txnHash').width = 12;
         worksheet.getColumn('from').width = 12;
@@ -79,6 +80,7 @@ async function createNFTWorksheet(processedTransactions) {
         worksheet.getColumn('walletAddress').width = 16;
         worksheet.getColumn('quantity').width = 12;
 
+        // auto-color rows based on action type
         worksheet.addConditionalFormatting({
             ref: `A2:${worksheet.lastColumn.letter}${worksheet.lastRow.number}`,
             rules: [
@@ -130,9 +132,18 @@ async function createNFTWorksheet(processedTransactions) {
                         border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
                     }
                 },
+                {
+                    type: 'expression',
+                    formulae: ['=$E2="airdrop"'],
+                    style: {
+                        fill: {type: 'pattern', pattern: 'solid', bgColor: {argb: 'FF0FFFFF'}},
+                        border: {top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}}
+                    }
+                },
             ]
         });
 
+        // cell style for first row (header)
         worksheet.getRow(1).eachCell((cell) => {
             cell.fill = {
                 type: 'pattern',
@@ -148,6 +159,7 @@ async function createNFTWorksheet(processedTransactions) {
             // };
         });
 
+        // cell style for last row (monthly totals)
         worksheet.columns.forEach((col) => {
             worksheet.lastRow.getCell(col.letter).fill = {
                 type: 'pattern',
@@ -162,6 +174,23 @@ async function createNFTWorksheet(processedTransactions) {
                 right: {style:'thin', color:{argb:'FF7F7F7F'}}
             };
         });
+
+        // lock first row to top of monthly worksheets
+        worksheet.views = [
+            {state: 'frozen', ySplit: 1}
+        ];
+
+        // currency formatting
+        const fiatFormatStr = '$#,##0.00;[Red]-$#,##0.00';
+        const ethFormatStr = '0.0000"E"';
+        worksheet.getColumn('ethValuePreFee').numFmt = ethFormatStr;
+        worksheet.getColumn('ethGasFee').numFmt = ethFormatStr;
+        worksheet.getColumn('ethMarketplaceFee').numFmt = ethFormatStr;
+        worksheet.getColumn('ethValuePostFee').numFmt = ethFormatStr;
+        worksheet.getColumn('fiatValuePreFee').numFmt = fiatFormatStr;
+        worksheet.getColumn('fiatGasFee').numFmt = fiatFormatStr;
+        worksheet.getColumn('fiatMarketplaceFee').numFmt = fiatFormatStr;
+        worksheet.getColumn('fiatValuePostFee').numFmt = fiatFormatStr;
     }
 
     const totalsWorksheet = workbook.addWorksheet('NFT Totals');
@@ -196,9 +225,7 @@ async function createNFTWorksheet(processedTransactions) {
     };
 
     for (let t of processedTransactions) {
-        // TODO add burn here
-        // TODO paidForTransfer shouldn't add to totalEthSpentPreFee... only gas fee (confirm)
-        if (t.actionType === 'buy' || t.actionType === 'mint' || t.actionType === 'transfer (out)' || t.paidForTransfer) {
+        if (t.actionType === 'buy' || t.actionType === 'mint' || t.actionType === 'burn' || t.actionType === 'transfer (out)' || t.paidForTransfer) {
             // eth
             nftTotals.totalEthSpentPreFee += t.ethValuePreFee;
             nftTotals.totalEthSpentGasFee += t.ethGasFee;
@@ -214,7 +241,7 @@ async function createNFTWorksheet(processedTransactions) {
             // usd
             nftTotals.totalUSDSpentMarketFee = currency(nftTotals.totalUSDSpentMarketFee).add(t.fiatMarketplaceFee).value;
             nftTotals.totalUSDGainedPreFee = currency(nftTotals.totalUSDGainedPreFee).add(t.fiatValuePreFee).value;
-        } else if (t.actionType === 'transfer (in)') {
+        } else if (t.actionType === 'transfer (in)' || t.actionType === 'airdrop') {
             // eth
             nftTotals.totalEthGainedPreFee += t.ethValuePreFee;
 

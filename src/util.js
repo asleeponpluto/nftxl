@@ -232,7 +232,7 @@ async function processTransactions(transactions) {
         }
 
         // paidForTransfer
-        const paidForTransfer = (actionType === 'transfer (in)' || actionType === 'airdrop') && txData.from_address === t.wallet;
+        const paidForTransfer = (actionType !== 'sell' && txData.from_address === t.wallet);
 
         let tempObj = {
             date: new Date(t.block_timestamp),
