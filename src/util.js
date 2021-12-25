@@ -217,7 +217,7 @@ async function processTransactions(transactions) {
                 sellerPercentage = marketFeeMap.get(t.token_address);
             } else {
                 sellerPercentage = await retryIfError(async () => {
-                    return await getSellerPercentage(t.token_address);
+                    return await getSellerPercentage(t.token_address, t.token_id);
                 });
                 marketFeeMap.set(t.token_address, sellerPercentage);
             }
@@ -276,7 +276,7 @@ async function getEthPriceForDay(formattedDate) {
     return responseJSON.data.amount;
 }
 
-async function getSellerPercentage(tokenAddress) {
+async function getSellerPercentage(tokenAddress, tokenID) {
     if (!getSellerPercentage.hasOwnProperty('proxies')) {
         getSellerPercentage.proxies = [
             process.env.PROXY_1,
@@ -293,20 +293,25 @@ async function getSellerPercentage(tokenAddress) {
     if (getSellerPercentage.proxyIndex > getSellerPercentage.proxies.length - 1)
         getSellerPercentage.proxyIndex = 0;
 
-    const response = await fetch(`https://api.opensea.io/api/v1/asset_contract/${tokenAddress}`, { agent: proxyAgent });
+    if (tokenAddress === '0x495f947276749Ce646f68AC8c248420045cb7b5e') {
+        const response = await fetch(`https://api.opensea.io/api/v1/asset/${tokenAddress}/${tokenID}`, { agent: proxyAgent });
+        const responseJSON = await response.json();
 
-    if (!response) {
-        throw new Error('getSellerPercentage failed before json parse.');
+        if (!responseJSON || !responseJSON.collection || !responseJSON.collection.opensea_seller_fee_basis_points) {
+            throw new Error('getSellerPercentage failed...');
+        }
+
+        return responseJSON.collection.opensea_seller_fee_basis_points;
+    } else {
+        const response = await fetch(`https://api.opensea.io/api/v1/asset_contract/${tokenAddress}`, { agent: proxyAgent });
+        const responseJSON = await response.json();
+
+        if (!responseJSON || !responseJSON.seller_fee_basis_points) {
+            throw new Error('getSellerPercentage failed...');
+        }
+
+        return responseJSON.seller_fee_basis_points;
     }
-
-    const responseJSON = await response.json();
-
-    if (!responseJSON || !responseJSON.seller_fee_basis_points) {
-        console.error(responseJSON);
-        throw new Error('getSellerPercentage Failed...');
-    }
-
-    return responseJSON.seller_fee_basis_points;
 }
 
 function separateIntoMonths(processedTransactions) {
