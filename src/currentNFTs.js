@@ -1,5 +1,6 @@
 const Moralis = require('moralis/node');
-const { timeout } = require('./util');
+
+const util = require('./util');
 
 async function queryCurrentNFTs(inputWallets) {
     let allNFTsArr = [];
@@ -20,7 +21,8 @@ async function queryCurrentNFTs(inputWallets) {
             allNFTsArr = allNFTsArr.concat(userEthNFTs.result);
 
             page++;
-            await timeout(2000);
+            console.log(`${userEthNFTs.result.length} items queried...`);
+            await util.timeout(2000);
         }
     }
 
@@ -35,8 +37,15 @@ function filterTransactionsByCurrentNFTs(processedTransactions, currentNFTs) {
 
     // match NFTs to transactions
     for (let nft of currentNFTs) {
-        const currKey = `${nft.token_address}:${nft.token_id}`;
-        if (nftTxnArrMap.has(currKey)) throw new Error("duplicate NFTs in multiple wallets (shouldn't happen)");
+        const currKey = nft.contract_type === 'ERC1155'
+                ? `${nft.token_address}:${nft.token_id}:${nft.owner_of}`
+                : `${nft.token_address}:${nft.token_id}`;
+        // if (nftTxnArrMap.has(currKey)) {
+        //     console.log(currKey);
+        //     console.log(nft.owner_of);
+        //     console.log(nftTxnArrMap.get(currKey));
+        //     throw new Error("duplicate NFTs in multiple wallets (shouldn't happen)");
+        // }
         nftTxnArrMap.set(currKey, []);
         for (let txn of processedTransactions) {
             if (txn.walletAddress === nft.owner_of && txn.tokenAddress === nft.token_address && txn.tokenID === nft.token_id) {

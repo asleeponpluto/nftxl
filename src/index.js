@@ -11,32 +11,26 @@ async function main() {
     await init();
 
     let inputWallets = await util.getWallets();
-    console.log();
 
+    console.log('\nQuerying transaction history...')
     let cleanTransactionArr = await util.queryMoralis(inputWallets);
+
     console.log(chalk.greenBright(`${cleanTransactionArr.length} total transactions to process...\n`));
     let processedTransactions = await util.processTransactions(cleanTransactionArr);
 
-    let allNFTs = await currentNFTs.queryCurrentNFTs(inputWallets);
-    let filtered = currentNFTs.filterTransactionsByCurrentNFTs(processedTransactions, allNFTs);
-    console.log(filtered);
+    util.objToJSONFile(processedTransactions, 'processed.json');
+
+    // let processedTransactions = util.JSONFileToObj('processed.json');
+    // for (let t of processedTransactions) {
+    //     t.date = new Date(t.date);
+    // }
 
 
-    // let cleanTransactionArr = await util.queryMoralis(inputWallets);
-    // console.log(chalk.greenBright(`${cleanTransactionArr.length} total transactions to process...\n`));
-    // let processedTransactions = await util.processTransactions(cleanTransactionArr);
-    // util.objToJSONFile(processedTransactions, 'processed.json');
+    let currentNFTArr = await currentNFTs.queryCurrentNFTs(inputWallets);
+    let filteredCurrentNFTs = currentNFTs.filterTransactionsByCurrentNFTs(processedTransactions, currentNFTArr);
 
-    /*
-    let processedTransactions = util.JSONFileToObj('processed.json');
-    for (let t of processedTransactions) {
-        t.date = new Date(t.date);
-    }
-    */
-
-    // console.log(processedTransactions);
-    // console.log(chalk.magentaBright('Generating excel workbook...'))
-    await excel.createNFTWorksheet(processedTransactions);
+    console.log(chalk.magentaBright('Generating excel workbook...'))
+    await excel.createNFTWorkbook(processedTransactions, filteredCurrentNFTs);
 }
 
 main().catch((e) => {
