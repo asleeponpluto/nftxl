@@ -249,6 +249,7 @@ async function processTransactions(transactions) {
             fiatMarketplaceFee: fiatMarketplaceFee,
             fiatValuePostFee: fiatValuePostFee,
             nftName: nftName,
+            tokenAddress: t.token_address,
             tokenID: t.token_id,
             walletAddress: t.wallet,
             quantity: t.quantity,
