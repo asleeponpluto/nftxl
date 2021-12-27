@@ -25,7 +25,6 @@ async function main() {
     //     t.date = new Date(t.date);
     // }
 
-
     let currentNFTArr = await currentNFTs.queryCurrentNFTs(inputWallets);
     let filteredCurrentNFTs = currentNFTs.filterTransactionsByCurrentNFTs(processedTransactions, currentNFTArr);
 

@@ -1,4 +1,6 @@
 const Moralis = require('moralis/node');
+const currency = require('currency.js');
+const clone = require('just-clone');
 
 const util = require('./util');
 
@@ -56,8 +58,6 @@ function filterTransactionsByCurrentNFTs(processedTransactions, currentNFTs) {
         }
     }
 
-    console.log(nftTxnArrMap)
-
     // sort all txn arrays for each nft by date
     for (let [nftKey, txnArr] of nftTxnArrMap) {
         txnArr.sort((a, b) => {
@@ -98,9 +98,31 @@ function filterTransactionsByCurrentNFTs(processedTransactions, currentNFTs) {
 
         for (let txn of txnArr) {
             if (txn.actionType === finalActionType) {
-                finalTxn = txn;
+                // create deep copy of txn (very important!)
+                finalTxn = clone(txn);
                 break;
             }
+        }
+
+        // divide prices for transactions with a >1 quantity
+        // also fix tokenID for specific transaction
+        if (finalTxn.quantity > 1) {
+            const divFactor = finalTxn.quantity;
+
+            // eth
+            finalTxn.ethValuePreFee /= divFactor;
+            finalTxn.ethGasFee /= divFactor;
+            finalTxn.ethMarketplaceFee /= divFactor;
+            finalTxn.ethValuePostFee /= divFactor;
+
+            // usd
+            finalTxn.fiatValuePreFee = currency(finalTxn.fiatValuePreFee).divide(divFactor).value;
+            finalTxn.fiatGasFee = currency(finalTxn.fiatGasFee).divide(divFactor).value;
+            finalTxn.fiatMarketplaceFee = currency(finalTxn.fiatMarketplaceFee).divide(divFactor).value;
+            finalTxn.fiatValuePostFee = currency(finalTxn.fiatValuePostFee).divide(divFactor).value;
+
+            // fix tokenID
+            finalTxn.tokenID = nftKey.split(':')[1];
         }
 
         finalNftTxnMap.set(nftKey, finalTxn);
