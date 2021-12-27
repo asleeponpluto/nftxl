@@ -11,10 +11,12 @@ async function queryCurrentNFTs(inputWallets) {
         let page = 0;
 
         while (true) {
-            const userEthNFTs = await Moralis.Web3API.account.getNFTs({
-                address: wallet,
-                offset: page * 500,
-                limit: 500
+            const userEthNFTs = await util.retryIfError(async () => {
+                return await Moralis.Web3API.account.getNFTs({
+                    address: wallet,
+                    offset: page * 500,
+                    limit: 500
+                });
             });
 
             if (userEthNFTs.result.length === 0)

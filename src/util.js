@@ -79,11 +79,13 @@ async function queryMoralis(inputWallets) {
 
 
         while (dateReached === false) {
-            const transactions = await Moralis.Web3API.account.getNFTTransfers({
-                address: wallet,
-                offset: page * 500,
-                limit: 500,
-                // order: 'block_timestamp.DESC'
+            const transactions = await retryIfError(async () => {
+                return await Moralis.Web3API.account.getNFTTransfers({
+                    address: wallet,
+                    offset: page * 500,
+                    limit: 500,
+                    // order: 'block_timestamp.DESC'
+                });
             });
 
             if (transactions.result.length === 0)
