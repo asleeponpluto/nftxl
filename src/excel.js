@@ -33,11 +33,7 @@ function addCurrentNFTsWorksheet(workbook, nftTxnMap) {
 
     let txnArr = [];
     for (let [nftKey, txn] of nftTxnMap) {
-        if (txn != null) {
-            txnArr.push(txn);
-        } else {
-            console.log(txn);
-        }
+        txnArr.push(txn);
     }
 
     // dates old to recent

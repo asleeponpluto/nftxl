@@ -114,9 +114,11 @@ async function queryMoralis(inputWallets) {
                         cleanTransactionArr.push(txn);
                         cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
                         cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
+                        cleanTransactionArr[cleanTransactionArr.length - 1].tokenIDArr = [txn.token_id];
                         txnHashMap.set(txn.transaction_hash, cleanTransactionArr.length - 1);
                     } else {
                         cleanTransactionArr[txnHashMap.get(txn.transaction_hash)].quantity++;
+                        cleanTransactionArr[txnHashMap.get(txn.transaction_hash)].tokenIDArr.push(txn.token_id);
                     }
                 }
             } else {
@@ -253,7 +255,8 @@ async function processTransactions(transactions) {
             tokenID: t.token_id,
             walletAddress: t.wallet,
             quantity: t.quantity,
-            paidForTransfer: paidForTransfer
+            paidForTransfer: paidForTransfer,
+            tokenIDArr: t.tokenIDArr
         }
 
         console.log();

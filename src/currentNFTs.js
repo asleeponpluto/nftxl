@@ -48,7 +48,7 @@ function filterTransactionsByCurrentNFTs(processedTransactions, currentNFTs) {
         // }
         nftTxnArrMap.set(currKey, []);
         for (let txn of processedTransactions) {
-            if (txn.walletAddress === nft.owner_of && txn.tokenAddress === nft.token_address && txn.tokenID === nft.token_id) {
+            if (txn.walletAddress === nft.owner_of && txn.tokenAddress === nft.token_address && txn.tokenIDArr.includes(nft.token_id)) {
                 if (txn.actionType === 'mint' || txn.actionType === 'buy' || txn.actionType === 'transfer (in)' || txn.actionType === 'airdrop') {
                     nftTxnArrMap.get(currKey).push(txn);
                 }
