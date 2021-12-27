@@ -16,6 +16,7 @@
     "dotenv": "^10.0.0",
     "exceljs": "^4.3.0",
     "https-proxy-agent": "^5.0.0",
+    "just-clone": "^5.0.1",
     "moralis": "0.0.165",
     "node-fetch": "^2.6.6",
     "web3": "^1.6.1"
