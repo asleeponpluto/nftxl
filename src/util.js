@@ -112,15 +112,16 @@ async function queryMoralis(inputWallets) {
             if (transactions.result.length !== 0) {
                 for (let i = 0; i < transactions.result.length; i++) {
                     const txn = transactions.result[i];
-                    if (!txnHashMap.has(txn.transaction_hash)) {
+                    const currMapKey = `${txn.transaction_hash}:${wallet}`;
+                    if (!txnHashMap.has(currMapKey)) {
                         cleanTransactionArr.push(txn);
                         cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
                         cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
                         cleanTransactionArr[cleanTransactionArr.length - 1].tokenIDArr = [txn.token_id];
-                        txnHashMap.set(txn.transaction_hash, cleanTransactionArr.length - 1);
+                        txnHashMap.set(currMapKey, cleanTransactionArr.length - 1);
                     } else {
-                        cleanTransactionArr[txnHashMap.get(txn.transaction_hash)].quantity++;
-                        cleanTransactionArr[txnHashMap.get(txn.transaction_hash)].tokenIDArr.push(txn.token_id);
+                        cleanTransactionArr[txnHashMap.get(currMapKey)].quantity++;
+                        cleanTransactionArr[txnHashMap.get(currMapKey)].tokenIDArr.push(txn.token_id);
                     }
                 }
             } else {

@@ -108,6 +108,12 @@ function filterTransactionsByCurrentNFTs(processedTransactions, currentNFTs) {
 
         // divide prices for transactions with a >1 quantity
         // also fix tokenID for specific transaction
+        if (finalTxn == null) {
+            console.log(nftKey);
+            console.log(txnArr);
+            throw new Error('no transactions were found for a specific nft');
+        }
+
         if (finalTxn.quantity > 1) {
             const divFactor = finalTxn.quantity;
 
