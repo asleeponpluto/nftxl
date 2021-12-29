@@ -13,17 +13,17 @@ async function main() {
     let inputWallets = await util.getWallets();
 
     console.log('\nQuerying transaction history...')
-    let cleanTransactionArr = await util.queryMoralis(inputWallets);
+    /*let cleanTransactionArr = await util.queryMoralis(inputWallets);
 
     console.log(chalk.greenBright(`${cleanTransactionArr.length} total transactions to process...\n`));
     let processedTransactions = await util.processTransactions(cleanTransactionArr);
 
-    util.objToJSONFile(processedTransactions, 'processed.json');
+    util.objToJSONFile(processedTransactions, 'processed.json');*/
 
-    // let processedTransactions = util.JSONFileToObj('processed.json');
-    // for (let t of processedTransactions) {
-    //     t.date = new Date(t.date);
-    // }
+    let processedTransactions = util.JSONFileToObj('processed.json');
+    for (let t of processedTransactions) {
+       t.date = new Date(t.date);
+    }
 
     let currentNFTArr = await currentNFTs.queryCurrentNFTs(inputWallets);
     let filteredCurrentNFTs = currentNFTs.filterTransactionsByCurrentNFTs(processedTransactions, currentNFTArr);

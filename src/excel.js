@@ -33,14 +33,18 @@ function addCurrentNFTsWorksheet(workbook, nftTxnMap) {
 
     let txnArr = [];
     for (let [nftKey, txn] of nftTxnMap) {
-        txnArr.push(txn);
+        if (txn != null) {
+            if(txn instanceof Array){
+                for(let tx of txn){
+                    txnArr.push(tx);
+                }
+            }else {
+                txnArr.push(txn);
+            }
+        } else {
+            console.log(txn);
+        }
     }
-
-    // resort transactions (new to old)
-    txnArr.sort((a, b) => {
-        // should sort all dates from new to old
-        return b.date - a.date;
-    });
 
     // dates old to recent
     for (let i = txnArr.length - 1; i >= 0; i--) {

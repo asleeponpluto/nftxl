@@ -116,7 +116,8 @@ async function queryMoralis(inputWallets) {
                     if (!txnHashMap.has(currMapKey)) {
                         cleanTransactionArr.push(txn);
                         cleanTransactionArr[cleanTransactionArr.length - 1].wallet = wallet;
-                        cleanTransactionArr[cleanTransactionArr.length - 1].quantity = 1;
+                        cleanTransactionArr[cleanTransactionArr.length - 1].quantity =
+                            parseInt(cleanTransactionArr[cleanTransactionArr.length - 1].amount);
                         cleanTransactionArr[cleanTransactionArr.length - 1].tokenIDArr = [txn.token_id];
                         txnHashMap.set(currMapKey, cleanTransactionArr.length - 1);
                     } else {
@@ -333,6 +334,10 @@ function separateIntoMonths(processedTransactions) {
         return txnMonths;
 
     for (let t of processedTransactions) {
+        // Fill out blank names (ERC1155)
+        if(t.nftName == null){
+            t.nftName = "Unidentified Collection"
+        }
         txnMonths[t.date.getMonth()].push(t);
     }
 
